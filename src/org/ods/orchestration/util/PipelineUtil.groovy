@@ -7,7 +7,7 @@ import com.cloudbees.groovy.cps.NonCPS
 
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.ZipParameters
-
+import org.apache.commons.io.FilenameUtils
 import org.ods.util.IPipelineSteps
 import org.ods.services.GitService
 
@@ -35,39 +35,31 @@ class PipelineUtil {
             )
         }
 
-        if (!path.startsWith(this.steps.env.WORKSPACE)) {
+        def wsPath = this.steps.env.WORKSPACE
+        if (!path.startsWith(wsPath)) {
             throw new IllegalArgumentException(
                 "Error: unable to archive artifact. 'path' must be inside the Jenkins workspace: ${path}"
             )
         }
 
-        def file = null
-
-        try {
-            // Write the artifact data to file
-            file = new File(path).setBytes(data)
-
-            // Compute the relative path inside the Jenkins workspace
-            def workspacePath = new File(this.steps.env.WORKSPACE).toURI().relativize(new File(path).toURI()).getPath()
-
-            // Archive the artifact (requires a relative path inside the Jenkins workspace)
-            this.steps.archiveArtifacts(workspacePath)
-        } finally {
-            if (file && file.exists()) {
-                file.delete()
-            }
+        def artifactPath = path.substring(wsPath)
+        if(artifactPath.startsWith('/')){
+            artifactPath=artifactPath.substring(1)
         }
+
+        def base64 = Base64.getEncoder().encodeToString(data)
+        this.steps.writeFile(artifactPath, base64, 'Base64')
+
+        // Archive the artifact (requires a relative path inside the Jenkins workspace)
+        this.steps.archiveArtifacts(artifactPath)
     }
 
     @NonCPS
-    protected File createDirectory(String path) {
+    protected void createDirectory(String path) {
         if (!path?.trim()) {
             throw new IllegalArgumentException("Error: unable to create directory. 'path' is undefined.")
         }
-
-        def dir = new File(path)
-        dir.mkdirs()
-        return dir
+        this.steps.sh("mkdir ${path}")
     }
 
     byte[] createZipArtifact(String name, Map<String, byte[]> files, boolean archive = true) {
@@ -80,10 +72,7 @@ class PipelineUtil {
         }
 
         def path = "${this.steps.env.WORKSPACE}/${ARTIFACTS_BASE_DIR}/${name}".toString()
-        def result = this.createZipFile(path, files)
-        if (archive) {
-            this.archiveArtifact(path, result)
-        }
+        def result = this.createZipFile(path, files, archive)
 
         return result
     }
@@ -94,22 +83,20 @@ class PipelineUtil {
         }
 
         if (file == null) {
-            throw new IllegalArgumentException("Error: unable to stash artifact. 'files' is undefined.")
+            throw new IllegalArgumentException("Error: unable to stash artifact. 'file' is undefined.")
         }
 
-        def path = "${this.steps.env.WORKSPACE}/${ARTIFACTS_BASE_DIR}/${stashName}".toString()
+        def path = "${this.steps.env.WORKSPACE}/${ARTIFACTS_BASE_DIR}".toString()
 
-        // Create parent directory if needed
-        this.createDirectory(new File(path).getParent())
-        new File(path) << (file)
-
-        this.steps.dir(new File(path).getParent()) {
+        // Parent directory will be automatically created if needed
+        this.steps.dir(path) {
+            this.steps.writeFile(stashName, Base64.getEncoder().encodeToString(file), 'Base64')
             this.steps.stash(['name': stashName, 'includes': stashName])
         }
     }
 
     @NonCPS
-    byte[] createZipFile(String path, Map<String, byte[]> files) {
+    byte[] createZipFile(String path, Map<String, byte[]> files, boolean archive = false) {
         if (!path?.trim()) {
             throw new IllegalArgumentException("Error: unable to create Zip file. 'path' is undefined.")
         }
@@ -118,30 +105,31 @@ class PipelineUtil {
             throw new IllegalArgumentException("Error: unable to create Zip file. 'files' is undefined.")
         }
 
-        // Create parent directory if needed
-        this.createDirectory(new File(path).getParent())
-
-        // Create the Zip file
-        def zipFile = new ZipFile(path)
-        files.each { filePath, fileData ->
-            def params = new ZipParameters()
-            params.setFileNameInZip(filePath)
-            zipFile.addStream(new ByteArrayInputStream(fileData), params)
+        this.steps.dir(FilenameUtils.getPath(path)){
+            this.steps.dir('__tmp'){
+                files.each{ filePath, fileData ->
+                    this.steps.dir(FilenameUtils.getPath(filePath)){
+                        this.steps.writeFile(FilenameUtils.getName(filePath), Base64.getEncoder().encodeToString(fileData), 'Base64')
+                    }
+                }
+            }
+            def fileName = FilenameUtils.getName(path)
+            this.steps.zip(fileName, archive, '__tmp')
+            this.steps.dir('__tmp') {
+                this.steps.deleteDir()
+            }
+            def base64 = this.steps.readFile(fileName, 'Base64')
+            return Base64.getDecoder().decode(base64)
         }
-
-        return new File(path).getBytes()
     }
 
     @NonCPS
     byte[] extractFromZipFile(String path, String fileToBeExtracted) {
-        // Create parent directory if needed
-        File parentdir = this.createDirectory(new File(path).getParent())
-
-        // Create the Zip file
-        def zipFile = new ZipFile(path)
-        zipFile.extractFile(fileToBeExtracted, parentdir.getAbsolutePath())
-
-        return new File(parentdir, fileToBeExtracted).getBytes()
+        this.steps.dir(FilenameUtils.getPath(path)) {
+            this.steps.unzip(zipFile: FilenameUtils.getName(path), glob: fileToBeExtracted)
+            def base64 = this.steps.readFile(fileToBeExtracted)
+            return Base64.getDecoder().decode(base64)
+        }
     }
 
     void executeBlockAndFailBuild(Closure block) {
@@ -169,8 +157,7 @@ class PipelineUtil {
             throw new IllegalArgumentException("Error: unable to load Groovy source file. 'path' is undefined.")
         }
 
-        def file = new File(path)
-        if (!file.exists()) {
+        if (!this.steps.fileExists(path)) {
             throw new IllegalArgumentException("Error: unable to load Groovy source file. Path ${path} does not exist.")
         }
 

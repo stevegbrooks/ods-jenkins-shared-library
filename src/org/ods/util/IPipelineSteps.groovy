@@ -62,4 +62,7 @@ interface IPipelineSteps {
 
     def unwrap()
 
+    def zip(String zipFile, boolean archive, String dir, String glob)
+
+    def unzip(String zipFile, String charset, String dir, String glob, boolean quiet, boolean read, boolean test)
 }

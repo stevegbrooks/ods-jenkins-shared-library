@@ -135,4 +135,13 @@ class PipelineSteps implements IPipelineSteps, Serializable {
         return this.context
     }
 
+    @Override
+    def zip(String filePath, boolean archive = false, String dir = '', String glob = '') {
+        this.context.zip(filePath, archive, dir, glob)
+    }
+
+    @Override
+    def unzip(String zipFile, String charset = '', String dir = '', String glob = '', boolean quiet = false, boolean read = false, boolean test = false) {
+        this.context.unzip(zipFile, charset, dir, glob, quiet, read, test)
+    }
 }

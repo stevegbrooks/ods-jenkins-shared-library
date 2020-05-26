@@ -4,6 +4,7 @@ package org.ods.services
 
 import com.cloudbees.groovy.cps.NonCPS
 import kong.unirest.Unirest
+import org.ods.util.PipelineSteps
 
 import org.apache.http.client.utils.URIBuilder
 
@@ -50,6 +51,7 @@ class NexusService {
         return storeComplextArtifact(repository, artifact, contentType, 'raw', nexusParams)
     }
 
+    @Deprecated
     URI storeArtifactFromFile(
         String repository,
         String directory,
@@ -57,6 +59,22 @@ class NexusService {
         File artifact,
         String contentType) {
         return storeArtifact(repository, directory, name, artifact.getBytes(), contentType)
+    }
+
+    URI storeArtifactFromFile(
+        String repository,
+        String directory,
+        String name,
+        String artifact,
+        String contentType) {
+        def steps = ServiceRegistry.instance.get(PipelineSteps)
+        def url = this.baseURL.toString() + '/service/rest/v1/components?repository=' + repository
+        steps.sh('curl -X POST -H "Content-Type: ' + contentType +
+            '" -u \'' + this.username + ':' + this.password +'\'' +
+            ' -F raw.directory=' + directory +
+            ' -F raw.asset1.filename=' + name +
+            ' -F raw.asset1=@' + artifact.trim() + url)
+        return this.baseURL.resolve("/repository/${repository}/${directory}/${name}")
     }
 
     @SuppressWarnings('LineLength')
@@ -97,13 +115,14 @@ class NexusService {
 
         if (repositoryType == 'raw') {
             return this.baseURL.resolve("/repository/${repository}/${nexusParams['raw.directory']}/" +
-              "${nexusParams['raw.asset1.filename']}")
+                "${nexusParams['raw.asset1.filename']}")
         }
         return this.baseURL.resolve("/repository/${repository}")
     }
 
     @SuppressWarnings(['LineLength','JavaIoPackageAccess'])
     @NonCPS
+    @Deprecated
     Map<URI, File> retrieveArtifact(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
         // https://nexus3-cd....../repository/leva-documentation/odsst-WIP/DTP-odsst-WIP-108.zip
         String urlToDownload = "${this.baseURL}/repository/${nexuseRepository}/${nexusDirectory}/${name}"
@@ -137,4 +156,20 @@ class NexusService {
         ]
     }
 
+    @SuppressWarnings(['LineLength','JavaIoPackageAccess'])
+    @NonCPS
+    Map<URI, String> retrieveArtifactToFile(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
+        // https://nexus3-cd....../repository/leva-documentation/odsst-WIP/DTP-odsst-WIP-108.zip
+        String urlToDownload = "${this.baseURL}/repository/${nexuseRepository}/${nexusDirectory}/${name}"
+
+        def steps = ServiceRegistry.instance.get(PipelineSteps)
+        def artifact = "${extractionPath}/${name}"
+        steps.sh("rm -f \"${artifact}\" && " +
+            "curl -u '${this.username}:${this.password}' -o ${artifact} ${urlToDownload}")
+
+         return [
+            uri: this.baseURL.resolve("/repository/${nexuseRepository}/${nexusDirectory}/${name}"),
+            file: artifact,
+        ]
+    }
 }
