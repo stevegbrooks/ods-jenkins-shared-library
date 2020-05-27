@@ -47,6 +47,11 @@ class PipelineSteps implements IPipelineSteps {
         return ""
     }
 
+    @Override
+    def bat(Object args) {
+        return null
+    }
+
     void stage(String name, Closure block) {
         block()
     }
@@ -113,7 +118,7 @@ class PipelineSteps implements IPipelineSteps {
     def withEnv(java.util.List env, groovy.lang.Closure block) {
       block()
     }
-    
+
     @Override
     def unstable(String message) {
     }
@@ -138,5 +143,25 @@ class PipelineSteps implements IPipelineSteps {
 
     def unwrap() {
       return [:]
+    }
+
+    @Override
+    def zip(String zipFile, boolean archive, String dir, String glob) {
+        return null
+    }
+
+    @Override
+    def unzip(String zipFile, String charset, String dir, String glob, boolean quiet, boolean read, boolean test) {
+        return null
+    }
+
+    @Override
+    def findFiles(String excludes, String glob, Closure block) {
+        return null
+    }
+
+    @Override
+    def isUnix() {
+        return null
     }
 }

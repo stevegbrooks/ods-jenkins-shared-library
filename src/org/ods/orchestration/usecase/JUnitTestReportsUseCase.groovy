@@ -65,15 +65,6 @@ class JUnitTestReportsUseCase {
         return result
     }
 
-    @Deprecated
-    Map parseTestReportFiles(List<File> files) {
-        def testResults = files.collect { file ->
-            JUnitParser.parseJUnitXML(file.text)
-        }
-
-        return this.combineTestResults(testResults)
-    }
-
     Map parseTestReportFiles(List<Map<String, Object>> files) {
         def testResults = files.collect { file ->
             this.steps.dir(file.path) {
