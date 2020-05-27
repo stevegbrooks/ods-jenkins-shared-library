@@ -56,7 +56,11 @@ class PipelineUtil {
         if (!path?.trim()) {
             throw new IllegalArgumentException("Error: unable to create directory. 'path' is undefined.")
         }
-        this.steps.sh("mkdir ${path}")
+        if(this.steps.isUnix()) {
+            this.steps.sh("mkdir ${path}")
+        } else {
+            this.steps.bat("md ${path}")
+        }
     }
 
     byte[] createZipArtifact(String name, Map<String, byte[]> files, boolean archive = true) {

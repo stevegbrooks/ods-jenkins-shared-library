@@ -22,6 +22,8 @@ interface IPipelineSteps {
 
     def sh(def args)
 
+    def bat(def args)
+
     void stage(String name, Closure block)
 
     void stash(String name)
@@ -67,4 +69,6 @@ interface IPipelineSteps {
     def unzip(String zipFile, String charset, String dir, String glob, boolean quiet, boolean read, boolean test)
 
     def findFiles(String excludes, String glob, Closure block)
+
+    def isUnix()
 }

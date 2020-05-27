@@ -64,16 +64,11 @@ class NexusService {
         String repository,
         String directory,
         String name,
-        Map<String, Object> artifact,
+        String artifact,
         String contentType) {
         def steps = ServiceRegistry.instance.get(PipelineSteps)
-        def url = this.baseURL.toString() + '/service/rest/v1/components?repository=' + repository
-        steps.sh('curl -X POST -H "Content-Type: ' + contentType +
-            '" -u \'' + this.username + ':' + this.password +'\'' +
-            ' -F raw.directory=' + directory +
-            ' -F raw.asset1.filename=' + name +
-            ' -F raw.asset1=@' + ((String)artifact.name).trim() + url)
-        return this.baseURL.resolve("/repository/${repository}/${directory}/${name}")
+        def base64 = steps.readFile(artifact, 'Base64')
+        return storeArtifact(repository, directory, name, Base64.getDecoder().decode(base64), contentType)
     }
 
     @SuppressWarnings('LineLength')
@@ -160,15 +155,33 @@ class NexusService {
     Map<URI, String> retrieveArtifactToFile(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
         // https://nexus3-cd....../repository/leva-documentation/odsst-WIP/DTP-odsst-WIP-108.zip
         String urlToDownload = "${this.baseURL}/repository/${nexuseRepository}/${nexusDirectory}/${name}"
+        def restCall = Unirest.get("${urlToDownload}")
+            .basicAuth(this.username, this.password)
+        def response = restCall.asBytes()
+
+        response.ifFailure {
+            def message = 'Error: unable to get artifact. ' +
+                "Nexus responded with code: '${response.getStatus()}' and message: '${response.getBody()}'." +
+                " The url called was: ${urlToDownload}"
+
+            if (response.getStatus() == 404) {
+                message = "Error: unable to get artifact. Nexus could not be found at: '${urlToDownload}'."
+            }
+            // very weird, we get a 200 as failure with a good artifact, wtf.
+            if (response.getStatus() != 200) {
+                throw new RuntimeException(message)
+            }
+        }
 
         def steps = ServiceRegistry.instance.get(PipelineSteps)
-        def artifact = "${extractionPath}/${name}"
-        steps.sh("rm -f \"${artifact}\" && " +
-            "curl -u '${this.username}:${this.password}' -o ${artifact} ${urlToDownload}")
+        steps.dir(extractionPath) {
+            def base64 = Base64.getEncoder().encodeToString(response.body)
+            steps.writeFile(name, base64, 'Base64')
+        }
 
-         return [
+        return [
             uri: this.baseURL.resolve("/repository/${nexuseRepository}/${nexusDirectory}/${name}"),
-            file: artifact,
+            content: response.getBody(),
         ]
     }
 }

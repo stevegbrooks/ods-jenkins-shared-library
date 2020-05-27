@@ -44,13 +44,14 @@ class SonarQubeUseCase {
         return result
     }
 
-    String uploadReportToNexus(String version, Map repo, String type, File artifact) {
+    String uploadReportToNexus(String version, Map repo, String type, String artifact) {
+        def repository = (String) this.project.services.nexus.repository.name
         return this.nexus.storeArtifactFromFile(
-            this.project.services.nexus.repository.name,
+            repository,
             "${this.project.key.toLowerCase()}-${version}",
             "${type}-${repo.id}-${version}.md",
             artifact,
             "application/text"
-        )
+        ).toString()
     }
 }

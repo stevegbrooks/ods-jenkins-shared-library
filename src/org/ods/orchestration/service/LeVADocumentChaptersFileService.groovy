@@ -1,9 +1,6 @@
 package org.ods.orchestration.service
 
 @Grab('org.yaml:snakeyaml:1.24')
-
-import java.nio.file.Paths
-
 import org.ods.util.IPipelineSteps
 import org.yaml.snakeyaml.Yaml
 
@@ -25,11 +22,17 @@ class LeVADocumentChaptersFileService {
         }
 
         def String yamlText
-        def file = Paths.get(this.steps.env.WORKSPACE, DOCUMENT_CHAPTERS_BASE_DIR, "${documentType}.yaml").toFile()
-        if (!file.exists()) {
-            yamlText = this.steps.readFile(file: "docs/${documentType}.yaml")
-        } else {
-            yamlText = file.text
+        def fileName = "${documentType}.yaml"
+        this.steps.dir(this.steps.env.WORKSPACE) {
+            this.steps.dir(DOCUMENT_CHAPTERS_BASE_DIR) {
+                if (this.steps.fileExists(fileName)) {
+                    yamlText = this.steps.readFile(fileName)
+                } else {
+                    this.steps.dir(docs) {
+                        yamlText = this.steps.readFile(fileName)
+                    }
+                }
+            }
         }
 
         def data = [:]

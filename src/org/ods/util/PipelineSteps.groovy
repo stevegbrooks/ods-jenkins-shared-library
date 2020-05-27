@@ -55,6 +55,10 @@ class PipelineSteps implements IPipelineSteps, Serializable {
         this.context.sh(args)
     }
 
+    def bat(def args) {
+        this.context.bat(args)
+    }
+
     void stage(String name, Closure block) {
         this.context.stage(name, block)
     }
@@ -148,5 +152,10 @@ class PipelineSteps implements IPipelineSteps, Serializable {
     @Override
     def findFiles(String excludes = '', String glob = '', Closure block = null) {
         this.context.findFiles(excludes, glob, block)
+    }
+
+    @Override
+    def isUnix() {
+        return this.context.isUnix()
     }
 }

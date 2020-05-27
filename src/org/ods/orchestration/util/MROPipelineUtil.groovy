@@ -1,22 +1,17 @@
 package org.ods.orchestration.util
 
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurperClassic
 @Grab('org.yaml:snakeyaml:1.24')
 
 import groovy.transform.InheritConstructors
-
-import java.nio.file.Paths
-
 import org.ods.orchestration.dependency.DependencyGraph
 import org.ods.orchestration.dependency.Node
-import org.ods.services.OpenShiftService
-import org.ods.services.JenkinsService
-import org.ods.services.ServiceRegistry
 import org.ods.services.GitService
-import org.ods.orchestration.util.Project
+import org.ods.services.JenkinsService
+import org.ods.services.OpenShiftService
+import org.ods.services.ServiceRegistry
 import org.yaml.snakeyaml.Yaml
-
-import groovy.json.JsonOutput
-import groovy.json.JsonSlurperClassic
 
 @InheritConstructors
 @SuppressWarnings(['LineLength', 'AbcMetric', 'NestedBlockDepth', 'EmptyElseBlock', 'CyclomaticComplexity', 'GStringAsMapKey', 'UseCollectNested'])
@@ -378,9 +373,13 @@ class MROPipelineUtil extends PipelineUtil {
         if (!path?.trim()) {
             throw new IllegalArgumentException("Error: unable to parse pipeline config. 'path' is undefined.")
         }
-
-        if (!path.startsWith(this.steps.env.WORKSPACE)) {
+        def ws = this.steps.env.WORKSPACE
+        if (!path.startsWith(ws)) {
             throw new IllegalArgumentException("Error: unable to parse pipeline config. 'path' must be inside the Jenkins workspace: ${path}")
+        }
+        path = path.substring(ws.length())
+        if(path.startsWith('/')){
+            path = path.substring(1)
         }
 
         if (!repo) {
@@ -388,72 +387,73 @@ class MROPipelineUtil extends PipelineUtil {
         }
 
         repo.pipelineConfig = [:]
+        this.steps.dir(path) {
+            PipelineConfig.FILE_NAMES.each { filename ->
+                if (this.steps.fileExists(filename)) {
+                    def text = this.steps.readFile(filename)
+                    def config = new Yaml().load(text) ?: [:]
 
-        PipelineConfig.FILE_NAMES.each { filename ->
-            def file = Paths.get(path, filename).toFile()
-            if (file.exists()) {
-                def config = new Yaml().load(file.text) ?: [:]
-
-                // Resolve pipeline phase config, if provided
-                if (config.phases) {
-                    config.phases.each { name, phase ->
-                        // Check for existence of required attribute 'type'
-                        if (!phase?.type?.trim()) {
-                            throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Required attribute 'phase.type' is undefined in phase '${name}'.")
-                        }
-
-                        // Check for validity of required attribute 'type'
-                        if (!PipelineConfig.PHASE_EXECUTOR_TYPES.contains(phase.type)) {
-                            throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Attribute 'phase.type' contains an unsupported value '${phase.type}' in phase '${name}'. Supported types are: ${PipelineConfig.PHASE_EXECUTOR_TYPES}.")
-                        }
-
-                        // Check for validity of an executor type's supporting attributes
-                        if (phase.type == PipelineConfig.PHASE_EXECUTOR_TYPE_MAKEFILE) {
-                            if (!phase.target?.trim()) {
-                                throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Required attribute 'phase.target' is undefined in phase '${name}'.")
+                    // Resolve pipeline phase config, if provided
+                    if (config.phases) {
+                        config.phases.each { name, phase ->
+                            // Check for existence of required attribute 'type'
+                            if (!phase?.type?.trim()) {
+                                throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Required attribute 'phase.type' is undefined in phase '${name}'.")
                             }
-                        } else if (phase.type == PipelineConfig.PHASE_EXECUTOR_TYPE_SHELLSCRIPT) {
-                            if (!phase.script?.trim()) {
-                                throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Required attribute 'phase.script' is undefined in phase '${name}'.")
+
+                            // Check for validity of required attribute 'type'
+                            if (!PipelineConfig.PHASE_EXECUTOR_TYPES.contains(phase.type)) {
+                                throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Attribute 'phase.type' contains an unsupported value '${phase.type}' in phase '${name}'. Supported types are: ${PipelineConfig.PHASE_EXECUTOR_TYPES}.")
+                            }
+
+                            // Check for validity of an executor type's supporting attributes
+                            if (phase.type == PipelineConfig.PHASE_EXECUTOR_TYPE_MAKEFILE) {
+                                if (!phase.target?.trim()) {
+                                    throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Required attribute 'phase.target' is undefined in phase '${name}'.")
+                                }
+                            } else if (phase.type == PipelineConfig.PHASE_EXECUTOR_TYPE_SHELLSCRIPT) {
+                                if (!phase.script?.trim()) {
+                                    throw new IllegalArgumentException("Error: unable to parse pipeline phase config. Required attribute 'phase.script' is undefined in phase '${name}'.")
+                                }
                             }
                         }
                     }
+//TODO Only the last config is selected. If this is right, we should start from the end.
+                    repo.pipelineConfig = config
                 }
-
-                repo.pipelineConfig = config
             }
-        }
 
-        def file = Paths.get(path, COMPONENT_METADATA_FILE_NAME).toFile()
-        if (!file.exists()) {
-            throw new IllegalArgumentException("Error: unable to parse component metadata. Required file '${COMPONENT_METADATA_FILE_NAME}' does not exist in repository '${repo.id}'.")
-        }
+            if (!this.steps.fileExists(COMPONENT_METADATA_FILE_NAME)) {
+                throw new IllegalArgumentException("Error: unable to parse component metadata. Required file '${COMPONENT_METADATA_FILE_NAME}' does not exist in repository '${repo.id}'.")
+            }
 
-        // Resolve component metadata
-        def metadata = new Yaml().load(file.text) ?: [:]
-        if (!metadata.name?.trim()) {
-            throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'name' is undefined for repository '${repo.id}'.")
-        }
+            def text = this.steps.readFile(COMPONENT_METADATA_FILE_NAME)
+            // Resolve component metadata
+            def metadata = new Yaml().load(text) ?: [:]
+            if (!metadata.name?.trim()) {
+                throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'name' is undefined for repository '${repo.id}'.")
+            }
 
-        if (!metadata.description?.trim()) {
-            throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'description' is undefined for repository '${repo.id}'.")
-        }
+            if (!metadata.description?.trim()) {
+                throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'description' is undefined for repository '${repo.id}'.")
+            }
 
-        if (!metadata.supplier?.trim()) {
-            throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'supplier' is undefined for repository '${repo.id}'.")
-        }
+            if (!metadata.supplier?.trim()) {
+                throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'supplier' is undefined for repository '${repo.id}'.")
+            }
 
-        if (!metadata.version?.toString()?.trim()) {
-            throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'version' is undefined for repository '${repo.id}'.")
-        }
+            if (!metadata.version?.toString()?.trim()) {
+                throw new IllegalArgumentException("Error: unable to parse component metadata. Required attribute 'version' is undefined for repository '${repo.id}'.")
+            }
 
-        // for those repos (= quickstarters) we supply we want to own the type
-        if (metadata.type?.toString()?.trim()) {
-            this.steps.echo("Repository type '${metadata.type}' configured on '${repo.id}' thru component's metadata.yml")
-            repo.type = metadata.type
-        }
+            // for those repos (= quickstarters) we supply we want to own the type
+            if (metadata.type?.toString()?.trim()) {
+                this.steps.echo("Repository type '${metadata.type}' configured on '${repo.id}' thru component's metadata.yml")
+                repo.type = metadata.type
+            }
 
-        repo.metadata = metadata
+            repo.metadata = metadata
+        }
 
         return repo
     }
