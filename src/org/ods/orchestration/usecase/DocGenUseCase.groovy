@@ -1,14 +1,13 @@
 package org.ods.orchestration.usecase
 
 import groovy.json.JsonOutput
-
 import org.ods.orchestration.service.DocGenService
-import org.ods.services.JenkinsService
-import org.ods.services.NexusService
-import org.ods.util.IPipelineSteps
 import org.ods.orchestration.util.MROPipelineUtil
 import org.ods.orchestration.util.PDFUtil
 import org.ods.orchestration.util.Project
+import org.ods.services.JenkinsService
+import org.ods.services.NexusService
+import org.ods.util.IPipelineSteps
 
 @SuppressWarnings(['AbstractClassWithPublicConstructor', 'LineLength', 'ParameterCount', 'GStringAsMapKey'])
 abstract class DocGenUseCase {
@@ -90,7 +89,6 @@ abstract class DocGenUseCase {
         return uri.toString()
     }
 
-    @SuppressWarnings(['JavaIoPackageAccess'])
     String createOverallDocument(String coverType, String documentType, Map metadata,Closure visitor = null, String watermarkText = null) {
         def documents = []
         def sections = []
@@ -101,8 +99,8 @@ abstract class DocGenUseCase {
             if (documentName) {
                 def path = "${this.steps.env.WORKSPACE}/reports/${repo.id}"
                 jenkins.unstashFilesIntoPath(documentName, path, documentType)
-                // writeFile and bytes does not work :(
-                documents << new File("${path}/${documentName}").readBytes()
+                def base64 = this.steps.readFile("${path}/${documentName}", 'Base64')
+                documents << Base64.getDecoder().decode(base64)
 
                 sections << [
                     heading: "${documentType} for component: ${repo.id} (merged)"

@@ -4,12 +4,9 @@ package org.ods.orchestration.util
 @Grab('org.yaml:snakeyaml:1.24')
 
 import com.cloudbees.groovy.cps.NonCPS
-
-import net.lingala.zip4j.ZipFile
-import net.lingala.zip4j.model.ZipParameters
 import org.apache.commons.io.FilenameUtils
-import org.ods.util.IPipelineSteps
 import org.ods.services.GitService
+import org.ods.util.IPipelineSteps
 
 @SuppressWarnings('JavaIoPackageAccess')
 class PipelineUtil {

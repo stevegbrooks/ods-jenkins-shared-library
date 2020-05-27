@@ -144,4 +144,9 @@ class PipelineSteps implements IPipelineSteps, Serializable {
     def unzip(String zipFile, String charset = '', String dir = '', String glob = '', boolean quiet = false, boolean read = false, boolean test = false) {
         this.context.unzip(zipFile, charset, dir, glob, quiet, read, test)
     }
+
+    @Override
+    def findFiles(String excludes = '', String glob = '', Closure block = null) {
+        this.context.findFiles(excludes, glob, block)
+    }
 }

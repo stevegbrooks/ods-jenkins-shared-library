@@ -4,9 +4,8 @@ package org.ods.services
 
 import com.cloudbees.groovy.cps.NonCPS
 import kong.unirest.Unirest
-import org.ods.util.PipelineSteps
-
 import org.apache.http.client.utils.URIBuilder
+import org.ods.util.PipelineSteps
 
 class NexusService {
 
@@ -65,7 +64,7 @@ class NexusService {
         String repository,
         String directory,
         String name,
-        String artifact,
+        Map<String, Object> artifact,
         String contentType) {
         def steps = ServiceRegistry.instance.get(PipelineSteps)
         def url = this.baseURL.toString() + '/service/rest/v1/components?repository=' + repository
@@ -73,7 +72,7 @@ class NexusService {
             '" -u \'' + this.username + ':' + this.password +'\'' +
             ' -F raw.directory=' + directory +
             ' -F raw.asset1.filename=' + name +
-            ' -F raw.asset1=@' + artifact.trim() + url)
+            ' -F raw.asset1=@' + ((String)artifact.name).trim() + url)
         return this.baseURL.resolve("/repository/${repository}/${directory}/${name}")
     }
 

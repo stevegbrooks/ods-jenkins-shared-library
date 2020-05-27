@@ -4,17 +4,11 @@ package org.ods.orchestration.util
 @Grab('fr.opensagres.xdocreport:fr.opensagres.poi.xwpf.converter.pdf:2.0.2')
 @Grab('org.apache.pdfbox:pdfbox:2.0.17')
 @Grab('org.apache.poi:poi:4.0.1')
-
-import org.ods.orchestration.util.MarkdownUtil
-
 import com.cloudbees.groovy.cps.NonCPS
-
 import fr.opensagres.poi.xwpf.converter.pdf.PdfConverter
 import fr.opensagres.poi.xwpf.converter.pdf.PdfOptions
-
-import java.nio.file.Files
-
 import org.apache.commons.io.IOUtils
+import org.apache.pdfbox.io.MemoryUsageSetting
 import org.apache.pdfbox.multipdf.PDFMergerUtility
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
@@ -25,6 +19,8 @@ import org.apache.pdfbox.pdmodel.graphics.blend.BlendMode
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import org.apache.pdfbox.util.Matrix
 import org.apache.poi.xwpf.usermodel.XWPFDocument
+import org.ods.services.ServiceRegistry
+import org.ods.util.PipelineSteps
 
 @SuppressWarnings(['JavaIoPackageAccess', 'LineLength'])
 class PDFUtil {
@@ -56,6 +52,7 @@ class PDFUtil {
     }
 
     @NonCPS
+    @Deprecated
     byte[] convertFromMarkdown(File wordDoc, Boolean landscape = false) {
         def result
 
@@ -70,6 +67,22 @@ class PDFUtil {
     }
 
     @NonCPS
+    byte[] convertFromMarkdown(String wordDoc, Boolean landscape = false) {
+        def result
+
+        try {
+            def steps = ServiceRegistry.instance.get(PipelineSteps)
+            def markdownContent = steps.readFile(wordDoc, 'UTF-8')
+            result = new MarkdownUtil().toPDF(markdownContent, landscape)
+        } catch (e) {
+            throw new RuntimeException("Error: unable to convert Markdown document to PDF: ${e.message}").initCause(e)
+        }
+
+        return result
+    }
+
+    @NonCPS
+    @Deprecated
     byte[] convertFromWordDoc(File wordDoc) {
         def result
 
@@ -95,24 +108,46 @@ class PDFUtil {
     }
 
     @NonCPS
-    byte[] merge(List<byte[]> files) {
+    byte[] convertFromWordDoc(String wordDoc) {
         def result
 
-        def tmp = Files.createTempFile('merged', '.pdf').toFile()
+        XWPFDocument doc
+        try {
+            def steps = ServiceRegistry.instance.get(PipelineSteps)
+            def base64 = steps.readFile(wordDoc, 'Base64')
+            def bytes = Base64.getDecoder().decode(base64)
+            def is = new ByteArrayInputStream(bytes)
+            doc = new XWPFDocument(is)
+
+            def options = PdfOptions.create()
+            def os = new ByteArrayOutputStream()
+            PdfConverter.getInstance().convert(doc, os, options)
+
+            result = os.toByteArray()
+        } catch (e) {
+            throw new RuntimeException("Error: unable to convert Word document to PDF: ${e.message}").initCause(e)
+        }
+
+        return result
+    }
+
+    @NonCPS
+    byte[] merge(List<byte[]> files, MemoryUsageSetting memUsageSetting = null) {
+        def result
+
         try {
             def merger = new PDFMergerUtility()
-            merger.setDestinationStream(new FileOutputStream(tmp))
+            def os = new ByteArrayOutputStream()
+            merger.setDestinationStream(os)
 
             files.each { file ->
                 merger.addSource(new ByteArrayInputStream(file))
             }
 
-            merger.mergeDocuments()
-            result = tmp.bytes
+            merger.mergeDocuments(memUsageSetting)
+            result = os.toByteArray()
         } catch (e) {
             throw new RuntimeException("Error: unable to merge PDF documents: ${e.message}").initCause(e)
-        } finally {
-            tmp.delete()
         }
 
         return result

@@ -38,6 +38,7 @@ class JUnitTestReportsUseCase {
     }
 
     @NonCPS
+    @Deprecated
     List<File> loadTestReportsFromPath(String path) {
         def result = []
 
@@ -50,9 +51,35 @@ class JUnitTestReportsUseCase {
         return result
     }
 
+    @NonCPS
+    List<Map<String, Object>> loadTestReportListFromPath(String path) {
+        def result = []
+        this.steps.dir(path) {
+            this.steps.findFiles(glob: '**/*.xml') { fileInfo ->
+                if(!fileInfo.directory) {
+                    result << [name:fileInfo.name, path:fileInfo.path, directory:false, length:fileInfo.length, lastModified:fileInfo.lastModified]
+                }
+            }
+        }
+
+        return result
+    }
+
+    @Deprecated
     Map parseTestReportFiles(List<File> files) {
         def testResults = files.collect { file ->
             JUnitParser.parseJUnitXML(file.text)
+        }
+
+        return this.combineTestResults(testResults)
+    }
+
+    Map parseTestReportFiles(List<Map<String, Object>> files) {
+        def testResults = files.collect { file ->
+            this.steps.dir(file.path) {
+                def text = this.steps.readFile(file.name)
+                JUnitParser.parseJUnitXML(text)
+            }
         }
 
         return this.combineTestResults(testResults)

@@ -17,6 +17,7 @@ class SonarQubeUseCase {
         this.nexus = nexus
     }
 
+    @Deprecated
     List<File> loadReportsFromPath(String path) {
         def result = []
 
@@ -25,6 +26,20 @@ class SonarQubeUseCase {
                 result << file
             }
         } catch (FileNotFoundException e) {}
+
+        return result
+    }
+
+    List<Map<String, Object>> loadReportListFromPath(String path) {
+        def result = []
+
+        this.steps.dir(path) {
+            this.steps.findFiles(glob: '**/*.md') { fileInfo ->
+                if(!fileInfo.directory) {
+                    result << [name:fileInfo.name, path:fileInfo.path, directory:false, length:fileInfo.length, lastModified:fileInfo.lastModified]
+                }
+            }
+        }
 
         return result
     }
