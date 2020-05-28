@@ -114,7 +114,7 @@ class NexusService {
         return this.baseURL.resolve("/repository/${repository}")
     }
 
-    @SuppressWarnings(['LineLength','JavaIoPackageAccess'])
+    @SuppressWarnings(['LineLength', 'JavaIoPackageAccess'])
     @NonCPS
     @Deprecated
     Map<URI, File> retrieveArtifact(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
@@ -150,7 +150,7 @@ class NexusService {
         ]
     }
 
-    @SuppressWarnings(['LineLength','JavaIoPackageAccess'])
+    @SuppressWarnings(['LineLength', 'JavaIoPackageAccess'])
     @NonCPS
     Map<URI, String> retrieveArtifactToFile(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
         // https://nexus3-cd....../repository/leva-documentation/odsst-WIP/DTP-odsst-WIP-108.zip
@@ -184,4 +184,5 @@ class NexusService {
             content: response.getBody(),
         ]
     }
+
 }

@@ -2,6 +2,7 @@ package util
 
 import org.ods.util.IPipelineSteps
 
+@SuppressWarnings('MethodCount')
 class PipelineSteps implements IPipelineSteps {
 
     private Map currentBuild = [:]
@@ -56,7 +57,9 @@ class PipelineSteps implements IPipelineSteps {
         block()
     }
 
+    @Override
     void stash(String name) {
+
     }
 
     void stash(Map config) {
@@ -151,7 +154,7 @@ class PipelineSteps implements IPipelineSteps {
     }
 
     @Override
-    def unzip(String zipFile, String charset, String dir, String glob, boolean quiet, boolean read, boolean test) {
+    def unzip(Map args) {
         return null
     }
 

@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
+@SuppressWarnings('MethodCount')
 class PipelineSteps implements IPipelineSteps, Serializable {
 
     private final def context
@@ -145,8 +146,8 @@ class PipelineSteps implements IPipelineSteps, Serializable {
     }
 
     @Override
-    def unzip(String zipFile, String charset = '', String dir = '', String glob = '', boolean quiet = false, boolean read = false, boolean test = false) {
-        this.context.unzip(zipFile, charset, dir, glob, quiet, read, test)
+    def unzip(Map args) {
+        this.context.unzip(args)
     }
 
     @Override
@@ -158,4 +159,5 @@ class PipelineSteps implements IPipelineSteps, Serializable {
     def isUnix() {
         return this.context.isUnix()
     }
+
 }

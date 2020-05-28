@@ -460,13 +460,11 @@ class OpenShiftService {
                     this.steps.echo "Using data from previous jenkins build: ${resurrectedBuild} " +
                         "for repo: ${repo.id}\r${repo.data.odsBuildArtifacts}"
                     return true
-                } else {
-                    return false
                 }
-            } else {
-                this.steps.echo("Current deployments for repo: '${repo.id}'" +
-                    " do not match last latest committed state (force? ${forceRedo}), rebuilding..")
+                return false
             }
+            this.steps.echo("Current deployments for repo: '${repo.id}'" +
+                " do not match last latest committed state (force? ${forceRedo}), rebuilding..")
         }
         return false
     }

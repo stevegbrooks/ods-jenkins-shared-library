@@ -39,9 +39,9 @@ class PipelineUtil {
             )
         }
 
-        def artifactPath = path.substring(wsPath)
-        if(artifactPath.startsWith('/')){
-            artifactPath=artifactPath.substring(1)
+        def artifactPath = path[wsPath.length()..-1]
+        while (artifactPath.startsWith('/')) {
+            artifactPath = artifactPath[1..-1]
         }
 
         def base64 = Base64.getEncoder().encodeToString(data)
@@ -56,10 +56,11 @@ class PipelineUtil {
         if (!path?.trim()) {
             throw new IllegalArgumentException("Error: unable to create directory. 'path' is undefined.")
         }
-        if(this.steps.isUnix()) {
-            this.steps.sh("mkdir ${path}")
+        def mkdir = "mkdir ${path}"
+        if (this.steps.isUnix()) {
+            this.steps.sh(mkdir)
         } else {
-            this.steps.bat("md ${path}")
+            this.steps.bat(mkdir)
         }
     }
 
@@ -106,11 +107,12 @@ class PipelineUtil {
             throw new IllegalArgumentException("Error: unable to create Zip file. 'files' is undefined.")
         }
 
-        this.steps.dir(FilenameUtils.getPath(path)){
-            this.steps.dir('__tmp'){
-                files.each{ filePath, fileData ->
-                    this.steps.dir(FilenameUtils.getPath(filePath)){
-                        this.steps.writeFile(FilenameUtils.getName(filePath), Base64.getEncoder().encodeToString(fileData), 'Base64')
+        this.steps.dir(FilenameUtils.getPath(path)) {
+            this.steps.dir('__tmp') {
+                files.each { filePath, fileData ->
+                    this.steps.dir(FilenameUtils.getPath(filePath)) {
+                        def base64 = Base64.getEncoder().encodeToString(fileData)
+                        this.steps.writeFile(FilenameUtils.getName(filePath), base64, 'Base64')
                     }
                 }
             }

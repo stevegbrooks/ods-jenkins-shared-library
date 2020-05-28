@@ -57,7 +57,8 @@ class JUnitTestReportsUseCase {
         this.steps.dir(path) {
             this.steps.findFiles(glob: '**/*.xml') { fileInfo ->
                 if(!fileInfo.directory) {
-                    result << [name:fileInfo.name, path:fileInfo.path, directory:false, length:fileInfo.length, lastModified:fileInfo.lastModified]
+                    result << [name: fileInfo.name, path: fileInfo.path, directory: false,
+                               length: fileInfo.length, lastModified: fileInfo.lastModified]
                 }
             }
         }

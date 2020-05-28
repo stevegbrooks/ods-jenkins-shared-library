@@ -13,6 +13,7 @@ import org.yaml.snakeyaml.Yaml
 class Project {
 
     class JiraDataItem implements Map, Serializable {
+
         static final String TYPE_BUGS = "bugs"
         static final String TYPE_COMPONENTS = "components"
         static final String TYPE_EPICS = "epics"
@@ -31,7 +32,7 @@ class Project {
             TYPE_REQUIREMENTS,
             TYPE_RISKS,
             TYPE_TECHSPECS,
-            TYPE_TESTS
+            TYPE_TESTS,
         ]
 
         static final List TYPES_WITH_STATUS = [
@@ -41,7 +42,7 @@ class Project {
             TYPE_REQUIREMENTS,
             TYPE_RISKS,
             TYPE_TECHSPECS,
-            TYPE_TESTS
+            TYPE_TESTS,
         ]
 
         private final String type
@@ -185,6 +186,7 @@ class Project {
         List<JiraDataItem> getResolvedTests() {
             return this.getResolvedReferences("tests")
         }
+
     }
 
     class TestType {
@@ -192,6 +194,7 @@ class Project {
         static final String INSTALLATION = "Installation"
         static final String INTEGRATION = "Integration"
         static final String UNIT = "Unit"
+
     }
 
     class GampTopic {
@@ -199,6 +202,7 @@ class Project {
         static final String CONSTRAINT = "Constraint"
         static final String FUNCTIONAL_REQUIREMENT = "Functional Requirement"
         static final String INTERFACE_REQUIREMENT = "Interface Requirement"
+
     }
 
     protected static final String BUILD_PARAM_VERSION_DEFAULT = "WIP"
