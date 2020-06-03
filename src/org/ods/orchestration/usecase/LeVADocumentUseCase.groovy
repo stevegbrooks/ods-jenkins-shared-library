@@ -164,7 +164,7 @@ class LeVADocumentUseCase extends DocGenUseCase {
             def name = this.getDocumentBasename("SCRR-MD", this.project.buildParams.version, this.steps.env.BUILD_ID, r)
             def sqReportFile = sqReportFiles.first()
 
-            def generatedSCRR = this.pdf.convertFromMarkdown(sqReportFile, true)
+            def generatedSCRR = this.pdf.convertFromMarkdown(sqReportFile.path, true)
 
             // store doc - we may need it later for partial deployments
             if (!resurrectedDocument.found) {

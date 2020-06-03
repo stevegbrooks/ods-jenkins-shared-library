@@ -7,7 +7,7 @@ interface IPipelineSteps {
 
     def checkout(Map config)
 
-    void dir(String path, Closure block)
+    def dir(String path, Closure block)
 
     void echo(String message)
 
@@ -65,11 +65,11 @@ interface IPipelineSteps {
 
     def unwrap()
 
-    def zip(String zipFile, boolean archive, String dir, String glob)
+    def zip(Map args)
 
     def unzip(Map args)
 
-    def findFiles(String excludes, String glob, Closure block)
+    def findFiles(Map args)
 
     def isUnix()
 

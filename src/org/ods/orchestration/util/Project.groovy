@@ -905,98 +905,97 @@ class Project {
             throw new IllegalArgumentException("Error: unable to parse project meta data. 'filename' is undefined.")
         }
 
-        this.steps.dir(this.steps.env.WORKSPACE) {
-            if (!this.steps.fileExists(filename)) {
-                throw new RuntimeException("Error: unable to load project meta data. File '${this.steps.env.WORKSPACE}/${filename}' does not exist.")
+        if (!this.steps.fileExists(filename)) {
+            throw new RuntimeException("Error: unable to load project meta data. File '${this.steps.env.WORKSPACE}/${filename}' does not exist.")
+        }
+        def text = this.steps.readFile(filename)
+
+        def result = new Yaml().load(text)
+
+        // Check for existence of required attribute 'id'
+        if (!result?.id?.trim()) {
+            throw new IllegalArgumentException("Error: unable to parse project meta data. Required attribute 'id' is undefined.")
+        }
+
+        // Check for existence of required attribute 'name'
+        if (!result?.name?.trim()) {
+            throw new IllegalArgumentException("Error: unable to parse project meta data. Required attribute 'name' is undefined.")
+        }
+
+        if (result.description == null) {
+            result.description = ""
+        }
+
+        if (result.repositories == null) {
+            result.repositories = []
+        }
+
+        result.repositories.eachWithIndex { repo, index ->
+            // Check for existence of required attribute 'repositories[i].id'
+            if (!repo.id?.trim()) {
+                throw new IllegalArgumentException("Error: unable to parse project meta data. Required attribute 'repositories[${index}].id' is undefined.")
             }
-            def text = this.steps.readFile(filename)
 
-            def result = new Yaml().load(text)
+            repo.data = [:]
+            repo.data.documents = [:]
 
-            // Check for existence of required attribute 'id'
-            if (!result?.id?.trim()) {
-                throw new IllegalArgumentException("Error: unable to parse project meta data. Required attribute 'id' is undefined.")
+            // Set repo type, if not provided
+            if (!repo.type?.trim()) {
+                repo.type = MROPipelineUtil.PipelineConfig.REPO_TYPE_ODS_CODE
             }
 
-            // Check for existence of required attribute 'name'
-            if (!result?.name?.trim()) {
-                throw new IllegalArgumentException("Error: unable to parse project meta data. Required attribute 'name' is undefined.")
-            }
+            // Resolve repo URL, if not provided
+            if (!repo.url?.trim()) {
+                this.steps.echo("Could not determine Git URL for repo '${repo.id}' from project meta data. Attempting to resolve automatically...")
 
-            if (result.description == null) {
-                result.description = ""
-            }
-
-            if (result.repositories == null) {
-                result.repositories = []
-            }
-
-            result.repositories.eachWithIndex { repo, index ->
-                // Check for existence of required attribute 'repositories[i].id'
-                if (!repo.id?.trim()) {
-                    throw new IllegalArgumentException("Error: unable to parse project meta data. Required attribute 'repositories[${index}].id' is undefined.")
+                def gitURL = this.getGitURLFromPath(this.steps.env.WORKSPACE, "origin")
+                if (repo.name?.trim()) {
+                    repo.url = gitURL.resolve("${repo.name}.git").toString()
+                    repo.remove("name")
+                } else {
+                    repo.url = gitURL.resolve("${result.id.toLowerCase()}-${repo.id}.git").toString()
                 }
 
-                repo.data = [:]
-                repo.data.documents = [:]
-
-                // Set repo type, if not provided
-                if (!repo.type?.trim()) {
-                    repo.type = MROPipelineUtil.PipelineConfig.REPO_TYPE_ODS_CODE
-                }
-
-                // Resolve repo URL, if not provided
-                if (!repo.url?.trim()) {
-                    this.steps.echo("Could not determine Git URL for repo '${repo.id}' from project meta data. Attempting to resolve automatically...")
-
-                    def gitURL = this.getGitURLFromPath(this.steps.env.WORKSPACE, "origin")
-                    if (repo.name?.trim()) {
-                        repo.url = gitURL.resolve("${repo.name}.git").toString()
-                        repo.remove("name")
-                    } else {
-                        repo.url = gitURL.resolve("${result.id.toLowerCase()}-${repo.id}.git").toString()
-                    }
-
-                    this.steps.echo("Resolved Git URL for repo '${repo.id}' to '${repo.url}'")
-                }
-
-                // Resolve repo branch, if not provided
-                if (!repo.branch?.trim()) {
-                    this.steps.echo("Could not determine Git branch for repo '${repo.id}' from project meta data. Assuming 'master'.")
-                    repo.branch = "master"
-                }
+                this.steps.echo("Resolved Git URL for repo '${repo.id}' to '${repo.url}'")
             }
 
-            if (result.capabilities == null) {
-                result.capabilities = []
-            }
-
-            // TODO move me to the LeVA documents plugin
-            def levaDocsCapabilities = result.capabilities.findAll { it instanceof Map && it.containsKey("LeVADocs") }
-            if (levaDocsCapabilities) {
-                if (levaDocsCapabilities.size() > 1) {
-                    throw new IllegalArgumentException("Error: unable to parse project metadata. More than one LeVADoc capability has been defined.")
-                }
-
-                def levaDocsCapability = levaDocsCapabilities.first()
-
-                def gampCategory = levaDocsCapability.LeVADocs?.GAMPCategory
-                if (!gampCategory) {
-                    throw new IllegalArgumentException("Error: LeVADocs capability has been defined but contains no GAMPCategory.")
-                }
-
-                def templatesVersion = levaDocsCapability.LeVADocs?.templatesVersion
-                if (!templatesVersion) {
-                    levaDocsCapability.LeVADocs.templatesVersion = "1.0"
-                }
-            }
-
-            if (result.environments == null) {
-                result.environments = [:]
+            // Resolve repo branch, if not provided
+            if (!repo.branch?.trim()) {
+                this.steps.echo("Could not determine Git branch for repo '${repo.id}' from project meta data. Assuming 'master'.")
+                repo.branch = "master"
             }
         }
 
+        if (result.capabilities == null) {
+            result.capabilities = []
+        }
+
+        // TODO move me to the LeVA documents plugin
+        def levaDocsCapabilities = result.capabilities.findAll { it instanceof Map && it.containsKey("LeVADocs") }
+        if (levaDocsCapabilities) {
+            if (levaDocsCapabilities.size() > 1) {
+                throw new IllegalArgumentException("Error: unable to parse project metadata. More than one LeVADoc capability has been defined.")
+            }
+
+            def levaDocsCapability = levaDocsCapabilities.first()
+
+            def gampCategory = levaDocsCapability.LeVADocs?.GAMPCategory
+            if (!gampCategory) {
+                throw new IllegalArgumentException("Error: LeVADocs capability has been defined but contains no GAMPCategory.")
+            }
+
+            def templatesVersion = levaDocsCapability.LeVADocs?.templatesVersion
+            if (!templatesVersion) {
+                levaDocsCapability.LeVADocs.templatesVersion = "1.0"
+            }
+        }
+
+        if (result.environments == null) {
+            result.environments = [:]
+        }
+
         return result
+
     }
 
     public void reportPipelineStatus(String message = "", boolean isError = false) {

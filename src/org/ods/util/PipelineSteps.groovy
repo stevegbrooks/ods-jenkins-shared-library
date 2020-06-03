@@ -21,8 +21,8 @@ class PipelineSteps implements IPipelineSteps, Serializable {
         return this.context.checkout(config)
     }
 
-    void dir(String path, Closure block) {
-        this.context.dir(path, block)
+    def dir(String path, Closure block) {
+        return this.context.dir(path, block)
     }
 
     void echo(String message) {
@@ -141,8 +141,8 @@ class PipelineSteps implements IPipelineSteps, Serializable {
     }
 
     @Override
-    def zip(String filePath, boolean archive = false, String dir = '', String glob = '') {
-        this.context.zip(filePath, archive, dir, glob)
+    def zip(Map args) {
+        this.context.zip(args)
     }
 
     @Override
@@ -151,8 +151,8 @@ class PipelineSteps implements IPipelineSteps, Serializable {
     }
 
     @Override
-    def findFiles(String excludes = '', String glob = '', Closure block = null) {
-        this.context.findFiles(excludes, glob, block)
+    def findFiles(Map args) {
+        return this.context.findFiles(args)
     }
 
     @Override

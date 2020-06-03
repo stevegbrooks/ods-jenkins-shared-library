@@ -30,7 +30,7 @@ class MROPipelineUtilSpec extends SpecHelper {
     def "load a repo's pipeline config"() {
         given:
         def repoPath = Paths.get(steps.env.WORKSPACE, MROPipelineUtil.REPOS_BASE_DIR, "A").toString()
-        def repoDir = util.createDirectory(repoPath)
+        util.createDirectory(repoPath)
         def repos = createProject().repositories
 
         def componentMetadataFile = Paths.get(repoPath, MROPipelineUtil.COMPONENT_METADATA_FILE_NAME)
@@ -90,7 +90,8 @@ class MROPipelineUtilSpec extends SpecHelper {
         result == expected
 
         cleanup:
-        repoDir.deleteDir()
+
+        util.deleteDirectory(repoPath)
     }
 
     def "load a repo's pipeline config with invalid path"() {
@@ -209,7 +210,7 @@ class MROPipelineUtilSpec extends SpecHelper {
         e.message == "Error: unable to parse component metadata. Required attribute 'version' is undefined for repository '${repos.first().id}'."
 
         cleanup:
-        repoDir.deleteDir()
+        util.deleteDirectory(repoDir)
     }
 
     def "load a repo's pipeline config with invalid phase type"() {
@@ -283,7 +284,7 @@ class MROPipelineUtilSpec extends SpecHelper {
         e.message == "Error: unable to parse pipeline phase config. Required attribute 'phase.target' is undefined in phase 'build'."
 
         cleanup:
-        repoDir.deleteDir()
+        util.deleteDirectory(repoDir)
     }
 
     def "load a repo's pipeline config with invalid target for phase type ShellScript"() {
@@ -341,7 +342,7 @@ class MROPipelineUtilSpec extends SpecHelper {
         e.message == "Error: unable to parse pipeline phase config. Required attribute 'phase.script' is undefined in phase 'build'."
 
         cleanup:
-        repoDir.deleteDir()
+        util.deleteDirectory(repoDir)
     }
 
     def "load a repo's pipeline config with missing metadata.yml"() {
@@ -358,7 +359,7 @@ class MROPipelineUtilSpec extends SpecHelper {
         e.message == "Error: unable to parse component metadata. Required file '${MROPipelineUtil.COMPONENT_METADATA_FILE_NAME}' does not exist in repository '${repos[0].id}'."
 
         cleanup:
-        repoDir.deleteDir()
+        util.deleteDirectory(repoDir)
     }
 
     def "load multiple repos' pipeline configs"() {
@@ -504,7 +505,7 @@ class MROPipelineUtilSpec extends SpecHelper {
 
         cleanup:
         repoDirs.each { repoDir ->
-            repoDir.deleteDir()
+            util.deleteDirectory(repoDir)
         }
     }
 
@@ -527,9 +528,9 @@ class MROPipelineUtilSpec extends SpecHelper {
         1 * visitor("${steps.env.WORKSPACE}/${MROPipelineUtil.REPOS_BASE_DIR}/${repos[3].id}", repos[3])
 
         cleanup:
-        repoDirA.deleteDir()
-        repoDirB.deleteDir()
-        repoDirC.deleteDir()
+        util.deleteDirectory(repoDirA)
+        util.deleteDirectory(repoDirB)
+        util.deleteDirectory(repoDirC)
     }
 
     def "warn if test results contain failure"() {

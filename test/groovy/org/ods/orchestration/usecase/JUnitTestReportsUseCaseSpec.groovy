@@ -62,7 +62,7 @@ class JUnitTestReportsUseCaseSpec extends SpecHelper {
         then:
         result == [
             testsuites: [
-                [ 
+                [
                     testcases: [
                         [ a: 1 ]
                     ]
@@ -111,7 +111,7 @@ class JUnitTestReportsUseCaseSpec extends SpecHelper {
 
         then:
         result.size() == 2
-        result.collect { it.text }.sort() == ["JUnit XML Report 1", "JUnit XML Report 2"]
+        result.collect { new File(it.path).text }.sort() == ["JUnit XML Report 1", "JUnit XML Report 2"]
 
         cleanup:
         xmlFiles.toFile().deleteDir()
@@ -143,7 +143,7 @@ class JUnitTestReportsUseCaseSpec extends SpecHelper {
         then:
         def expected = [
             testsuites: JUnitParser.parseJUnitXML(xmlFile.text).testsuites
-        ] 
+        ]
 
         result == expected
 

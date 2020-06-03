@@ -1,7 +1,7 @@
 package org.ods.orchestration.usecase
 
 import com.cloudbees.groovy.cps.NonCPS
-
+import org.apache.commons.io.FilenameUtils
 import org.ods.orchestration.parser.JUnitParser
 import org.ods.util.IPipelineSteps
 import org.ods.orchestration.util.Project
@@ -38,24 +38,10 @@ class JUnitTestReportsUseCase {
     }
 
     @NonCPS
-    @Deprecated
-    List<File> loadTestReportsFromPath(String path) {
-        def result = []
-
-        try {
-            new File(path).traverse(nameFilter: ~/.*\.xml$/, type: groovy.io.FileType.FILES) { file ->
-                result << file
-            }
-        } catch (FileNotFoundException e) {}
-
-        return result
-    }
-
-    @NonCPS
-    List<Map<String, Object>> loadTestReportListFromPath(String path) {
+    List<Map<String, Object>> loadTestReportsFromPath(String path) {
         def result = []
         this.steps.dir(path) {
-            this.steps.findFiles(glob: '**/*.xml') { fileInfo ->
+            this.steps.findFiles(glob: '**/*.xml').each { fileInfo ->
                 if(!fileInfo.directory) {
                     result << [name: fileInfo.name, path: fileInfo.path, directory: false,
                                length: fileInfo.length, lastModified: fileInfo.lastModified]
@@ -68,7 +54,7 @@ class JUnitTestReportsUseCase {
 
     Map parseTestReportFiles(List<Map<String, Object>> files) {
         def testResults = files.collect { file ->
-            this.steps.dir(file.path) {
+            this.steps.dir(FilenameUtils.getFullPath(file.path)) {
                 def text = this.steps.readFile(file.name)
                 JUnitParser.parseJUnitXML(text)
             }

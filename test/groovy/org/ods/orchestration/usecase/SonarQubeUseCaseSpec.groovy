@@ -38,7 +38,7 @@ class SonarQubeUseCaseSpec extends SpecHelper {
 
         then:
         result.size() == 2
-        result.collect { it.text }.sort() == ["SQ Report 1", "SQ Report 2"]
+        result.collect { new File(it.path).text }.sort() == ["SQ Report 1", "SQ Report 2"]
 
         cleanup:
         sqFiles.toFile().deleteDir()
@@ -66,14 +66,14 @@ class SonarQubeUseCaseSpec extends SpecHelper {
         def artifact = Files.createTempFile("sq", ".md").toFile()
 
         when:
-        def result = usecase.uploadReportToNexus(version, repo, type, artifact)
+        def result = usecase.uploadReportToNexus(version, repo, type, artifact.toString())
 
         then:
         1 * nexus.storeArtifactFromFile(
             project.services.nexus.repository.name,
             { "${project.key.toLowerCase()}-${version}" },
             { "${type}-${repo.id}-${version}.md" },
-            artifact,
+            artifact.toString(),
             "application/text"
         )
 

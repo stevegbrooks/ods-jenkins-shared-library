@@ -7,7 +7,7 @@ package org.ods.orchestration.util
 import com.cloudbees.groovy.cps.NonCPS
 import fr.opensagres.poi.xwpf.converter.pdf.PdfConverter
 import fr.opensagres.poi.xwpf.converter.pdf.PdfOptions
-import org.apache.commons.io.IOUtils
+import org.apache.commons.io.FilenameUtils
 import org.apache.pdfbox.io.MemoryUsageSetting
 import org.apache.pdfbox.multipdf.PDFMergerUtility
 import org.apache.pdfbox.pdmodel.PDDocument
@@ -20,10 +20,21 @@ import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import org.apache.pdfbox.util.Matrix
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.ods.services.ServiceRegistry
+import org.ods.util.IPipelineSteps
 import org.ods.util.PipelineSteps
 
 @SuppressWarnings(['JavaIoPackageAccess', 'LineLength'])
 class PDFUtil {
+
+    IPipelineSteps steps
+
+    PDFUtil() {
+        this(ServiceRegistry.instance.get(PipelineSteps))
+    }
+
+    PDFUtil(IPipelineSteps steps) {
+        this.steps = steps
+    }
 
     @NonCPS
     byte[] addWatermarkText(byte[] file, String text) {
@@ -52,56 +63,16 @@ class PDFUtil {
     }
 
     @NonCPS
-    @Deprecated
-    byte[] convertFromMarkdown(File wordDoc, Boolean landscape = false) {
-        def result
-
-        try {
-            def markdownContent = IOUtils.toString(new FileInputStream(wordDoc), 'UTF-8')
-            result = new MarkdownUtil().toPDF(markdownContent, landscape)
-        } catch (e) {
-            throw new RuntimeException("Error: unable to convert Markdown document to PDF: ${e.message}").initCause(e)
-        }
-
-        return result
-    }
-
-    @NonCPS
     byte[] convertFromMarkdown(String wordDoc, Boolean landscape = false) {
         def result
 
         try {
-            def steps = ServiceRegistry.instance.get(PipelineSteps)
-            def markdownContent = steps.readFile(wordDoc, 'UTF-8')
-            result = new MarkdownUtil().toPDF(markdownContent, landscape)
+            this.steps.dir(FilenameUtils.getFullPath(wordDoc)) {
+                def markdownContent = this.steps.readFile(FilenameUtils.getName(wordDoc), 'UTF-8')
+                result = new MarkdownUtil().toPDF(markdownContent, landscape)
+            }
         } catch (e) {
             throw new RuntimeException("Error: unable to convert Markdown document to PDF: ${e.message}").initCause(e)
-        }
-
-        return result
-    }
-
-    @NonCPS
-    @Deprecated
-    byte[] convertFromWordDoc(File wordDoc) {
-        def result
-
-        XWPFDocument doc
-        try {
-            def is = new FileInputStream(wordDoc)
-            doc = new XWPFDocument(is)
-
-            def options = PdfOptions.create()
-            def os = new ByteArrayOutputStream()
-            PdfConverter.getInstance().convert(doc, os, options)
-
-            result = os.toByteArray()
-        } catch (e) {
-            throw new RuntimeException("Error: unable to convert Word document to PDF: ${e.message}").initCause(e)
-        } finally {
-            if (doc) {
-                doc.close()
-            }
         }
 
         return result
@@ -113,11 +84,12 @@ class PDFUtil {
 
         XWPFDocument doc
         try {
-            def steps = ServiceRegistry.instance.get(PipelineSteps)
-            def base64 = steps.readFile(wordDoc, 'Base64')
-            def bytes = Base64.getDecoder().decode(base64)
-            def is = new ByteArrayInputStream(bytes)
-            doc = new XWPFDocument(is)
+            this.steps.dir(FilenameUtils.getFullPath(wordDoc)) {
+                def base64 = this.steps.readFile(FilenameUtils.getName(wordDoc), 'Base64')
+                def bytes = base64.decodeBase64()
+                def is = new ByteArrayInputStream(bytes)
+                doc = new XWPFDocument(is)
+            }
 
             def options = PdfOptions.create()
             def os = new ByteArrayOutputStream()

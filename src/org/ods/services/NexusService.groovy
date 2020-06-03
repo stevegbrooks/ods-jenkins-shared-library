@@ -4,6 +4,7 @@ package org.ods.services
 
 import com.cloudbees.groovy.cps.NonCPS
 import kong.unirest.Unirest
+import org.apache.commons.io.FilenameUtils
 import org.apache.http.client.utils.URIBuilder
 import org.ods.util.PipelineSteps
 
@@ -50,16 +51,6 @@ class NexusService {
         return storeComplextArtifact(repository, artifact, contentType, 'raw', nexusParams)
     }
 
-    @Deprecated
-    URI storeArtifactFromFile(
-        String repository,
-        String directory,
-        String name,
-        File artifact,
-        String contentType) {
-        return storeArtifact(repository, directory, name, artifact.getBytes(), contentType)
-    }
-
     URI storeArtifactFromFile(
         String repository,
         String directory,
@@ -67,8 +58,10 @@ class NexusService {
         String artifact,
         String contentType) {
         def steps = ServiceRegistry.instance.get(PipelineSteps)
-        def base64 = steps.readFile(artifact, 'Base64')
-        return storeArtifact(repository, directory, name, Base64.getDecoder().decode(base64), contentType)
+        steps.dir(FilenameUtils.getFullPath(artifact)) {
+            def base64 = steps.readFile(FilenameUtils.getName(artifact), 'Base64')
+            return storeArtifact(repository, directory, name, base64.decodeBase64(), contentType)
+        }
     }
 
     @SuppressWarnings('LineLength')
@@ -116,43 +109,7 @@ class NexusService {
 
     @SuppressWarnings(['LineLength', 'JavaIoPackageAccess'])
     @NonCPS
-    @Deprecated
-    Map<URI, File> retrieveArtifact(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
-        // https://nexus3-cd....../repository/leva-documentation/odsst-WIP/DTP-odsst-WIP-108.zip
-        String urlToDownload = "${this.baseURL}/repository/${nexuseRepository}/${nexusDirectory}/${name}"
-        def restCall = Unirest.get("${urlToDownload}")
-            .basicAuth(this.username, this.password)
-
-        // hurray - unirest, in case file exists - don't do anything.
-        File artifactExists = new File("${extractionPath}/${name}")
-        if (artifactExists) {
-            artifactExists.delete()
-        }
-        def response = restCall.asFile("${extractionPath}/${name}")
-
-        response.ifFailure {
-            def message = 'Error: unable to get artifact. ' +
-                "Nexus responded with code: '${response.getStatus()}' and message: '${response.getBody()}'." +
-                " The url called was: ${urlToDownload}"
-
-            if (response.getStatus() == 404) {
-                message = "Error: unable to get artifact. Nexus could not be found at: '${urlToDownload}'."
-            }
-            // very weird, we get a 200 as failure with a good artifact, wtf.
-            if (response.getStatus() != 200) {
-                throw new RuntimeException(message)
-            }
-        }
-
-        return [
-            uri: this.baseURL.resolve("/repository/${nexuseRepository}/${nexusDirectory}/${name}"),
-            content: response.getBody(),
-        ]
-    }
-
-    @SuppressWarnings(['LineLength', 'JavaIoPackageAccess'])
-    @NonCPS
-    Map<URI, String> retrieveArtifactToFile(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
+    Map<String, Object> retrieveArtifact(String nexuseRepository, String nexusDirectory, String name, String extractionPath) {
         // https://nexus3-cd....../repository/leva-documentation/odsst-WIP/DTP-odsst-WIP-108.zip
         String urlToDownload = "${this.baseURL}/repository/${nexuseRepository}/${nexusDirectory}/${name}"
         def restCall = Unirest.get("${urlToDownload}")
@@ -175,7 +132,7 @@ class NexusService {
 
         def steps = ServiceRegistry.instance.get(PipelineSteps)
         steps.dir(extractionPath) {
-            def base64 = Base64.getEncoder().encodeToString(response.body)
+            def base64 = response.body.encodeBase64().toString()
             steps.writeFile(name, base64, 'Base64')
         }
 

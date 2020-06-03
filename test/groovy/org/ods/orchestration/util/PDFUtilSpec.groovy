@@ -1,21 +1,16 @@
 package org.ods.orchestration.util
 
-import java.nio.file.Files
-import java.nio.file.Paths
-
 import org.apache.pdfbox.pdmodel.PDDocument
-
-import spock.lang.*
-
-import static util.FixtureHelper.*
-
-import util.*
+import util.FixtureHelper
+import util.PipelineSteps
+import util.SpecHelper
 
 class PDFUtilSpec extends SpecHelper {
 
+
     def "add watermark text"() {
         given:
-        def util = new PDFUtil()
+        def util = new PDFUtil(new PipelineSteps())
 
         def pdfFile = new FixtureHelper().getResource("Test-1.pdf")
         def text = "myWatermark"
@@ -32,13 +27,13 @@ class PDFUtilSpec extends SpecHelper {
 
     def "convert from mardkdown document"() {
         given:
-        def util = new PDFUtil()
+        def util = new PDFUtil(new PipelineSteps())
 
         def docFile = new FixtureHelper().getResource("Test.md")
         def result
 
         when:
-        result = util.convertFromMarkdown(docFile, false)
+        result = util.convertFromMarkdown(docFile.getPath(), false)
 
         then:
         def doc = PDDocument.load(result)
@@ -46,7 +41,7 @@ class PDFUtilSpec extends SpecHelper {
         doc.close()
 
         when:
-        result = util.convertFromMarkdown(docFile, true)
+        result = util.convertFromMarkdown(docFile.getPath(), true)
 
         then:
         def docLandscape = PDDocument.load(result)
@@ -57,12 +52,12 @@ class PDFUtilSpec extends SpecHelper {
 
     def "convert from Microsoft Word document"() {
         given:
-        def util = new PDFUtil()
+        def util = new PDFUtil(new PipelineSteps())
 
         def docFile = new FixtureHelper().getResource("Test.docx")
 
         when:
-        def result = util.convertFromWordDoc(docFile)
+        def result = util.convertFromWordDoc(docFile.getPath())
 
         then:
         def doc = PDDocument.load(result)
@@ -72,7 +67,7 @@ class PDFUtilSpec extends SpecHelper {
 
     def "merge documents"() {
         given:
-        def util = new PDFUtil()
+        def util = new PDFUtil(new PipelineSteps())
 
         def docFile1 = new FixtureHelper().getResource("Test-1.pdf")
         def docFile2 = new FixtureHelper().getResource("Test-2.pdf")

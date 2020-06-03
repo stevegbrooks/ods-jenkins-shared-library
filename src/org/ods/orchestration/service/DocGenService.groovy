@@ -62,6 +62,6 @@ class DocGenService {
     }
 
     private static byte[] decodeBase64(String base64String) {
-        return Base64.decoder.decode(base64String)
+        return base64String.decodeBase64()
     }
 }

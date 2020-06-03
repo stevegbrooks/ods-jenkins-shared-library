@@ -104,9 +104,6 @@ class PipelineUtilSpec extends SpecHelper {
         1 * util.createZipFile(*_)
 
         then:
-        1 * util.archiveArtifact(*_)
-
-        then:
         result.size() != 0
 
         cleanup:

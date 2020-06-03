@@ -44,7 +44,7 @@ class PipelineUtil {
             artifactPath = artifactPath[1..-1]
         }
 
-        def base64 = Base64.getEncoder().encodeToString(data)
+        def base64 = data.encodeBase64().toString()
         this.steps.writeFile(artifactPath, base64, 'Base64')
 
         // Archive the artifact (requires a relative path inside the Jenkins workspace)
@@ -52,15 +52,26 @@ class PipelineUtil {
     }
 
     @NonCPS
-    protected void createDirectory(String path) {
+    protected def createDirectory(String path) {
         if (!path?.trim()) {
             throw new IllegalArgumentException("Error: unable to create directory. 'path' is undefined.")
         }
-        def mkdir = "mkdir ${path}"
-        if (this.steps.isUnix()) {
-            this.steps.sh(mkdir)
-        } else {
-            this.steps.bat(mkdir)
+        this.steps.dir(path) {
+            this.steps.dir('__tmp') {
+                this.steps.writeFile('dummy.txt', 'A')
+                this.steps.deleteDir()
+            }
+        }
+        return path
+    }
+
+    @NonCPS
+    protected void deleteDirectory(String path) {
+        if (!path?.trim()) {
+            throw new IllegalArgumentException("Error: unable to create directory. 'path' is undefined.")
+        }
+        this.steps.dir(path) {
+            this.steps.deleteDir()
         }
     }
 
@@ -92,7 +103,7 @@ class PipelineUtil {
 
         // Parent directory will be automatically created if needed
         this.steps.dir(path) {
-            this.steps.writeFile(stashName, Base64.getEncoder().encodeToString(file), 'Base64')
+            this.steps.writeFile(stashName, file.encodeBase64(), 'Base64')
             this.steps.stash(['name': stashName, 'includes': stashName])
         }
     }
@@ -107,31 +118,31 @@ class PipelineUtil {
             throw new IllegalArgumentException("Error: unable to create Zip file. 'files' is undefined.")
         }
 
-        this.steps.dir(FilenameUtils.getPath(path)) {
+        this.steps.dir(FilenameUtils.getFullPath(path)) {
             this.steps.dir('__tmp') {
                 files.each { filePath, fileData ->
-                    this.steps.dir(FilenameUtils.getPath(filePath)) {
-                        def base64 = Base64.getEncoder().encodeToString(fileData)
+                    this.steps.dir(FilenameUtils.getFullPath(filePath)) {
+                        def base64 = fileData.encodeBase64()
                         this.steps.writeFile(FilenameUtils.getName(filePath), base64, 'Base64')
                     }
                 }
             }
-            def fileName = FilenameUtils.getName(path)
-            this.steps.zip(fileName, archive, '__tmp')
+            def zipFile = FilenameUtils.getName(path)
+            this.steps.zip(zipFile: zipFile, archive: archive, dir: '__tmp')
             this.steps.dir('__tmp') {
                 this.steps.deleteDir()
             }
-            def base64 = this.steps.readFile(fileName, 'Base64')
-            return Base64.getDecoder().decode(base64)
+            def base64 = this.steps.readFile(zipFile, 'Base64')
+            return base64.decodeBase64()
         }
     }
 
     @NonCPS
     byte[] extractFromZipFile(String path, String fileToBeExtracted) {
-        this.steps.dir(FilenameUtils.getPath(path)) {
+        this.steps.dir(FilenameUtils.getFullPath(path)) {
             this.steps.unzip(zipFile: FilenameUtils.getName(path), glob: fileToBeExtracted)
             def base64 = this.steps.readFile(fileToBeExtracted)
-            return Base64.getDecoder().decode(base64)
+            return base64.decodeBase64()
         }
     }
 

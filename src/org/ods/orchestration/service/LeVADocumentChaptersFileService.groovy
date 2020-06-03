@@ -21,16 +21,22 @@ class LeVADocumentChaptersFileService {
             )
         }
 
-        def String yamlText
+        String yamlText
         def fileName = "${documentType}.yaml"
-        this.steps.dir(this.steps.env.WORKSPACE) {
-            this.steps.dir(DOCUMENT_CHAPTERS_BASE_DIR) {
-                if (this.steps.fileExists(fileName)) {
+        this.steps.dir(DOCUMENT_CHAPTERS_BASE_DIR) {
+            if (this.steps.fileExists(fileName)) {
+                yamlText = this.steps.readFile(fileName)
+            }
+        }
+        if (yamlText == null) {
+            this.steps.dir('docs') {
+                try {
                     yamlText = this.steps.readFile(fileName)
-                } else {
-                    this.steps.dir(docs) {
-                        yamlText = this.steps.readFile(fileName)
-                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(
+                        "Error: unable to load document chapters. File 'docs/${documentType}.yaml' could not be read."
+                        , e
+                    )
                 }
             }
         }

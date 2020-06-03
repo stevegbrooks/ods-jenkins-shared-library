@@ -100,7 +100,7 @@ abstract class DocGenUseCase {
                 def path = "${this.steps.env.WORKSPACE}/reports/${repo.id}"
                 jenkins.unstashFilesIntoPath(documentName, path, documentType)
                 def base64 = this.steps.readFile("${path}/${documentName}", 'Base64')
-                documents << Base64.getDecoder().decode(base64)
+                documents << base64.decodeBase64()
 
                 sections << [
                     heading: "${documentType} for component: ${repo.id} (merged)"
@@ -176,13 +176,13 @@ abstract class DocGenUseCase {
                 "${this.project.key.toLowerCase()}-${buildVersion}",
                 storedFileName, path)
 
-        this.steps.echo "Document found: ${storedFileName} \r ${documentFromNexus}"
+        this.steps.echo "Document found: ${storedFileName} \r ${documentFromNexus.uri}"
         byte [] resurrectedDocAsBytes
         if (storageType == 'zip') {
             resurrectedDocAsBytes = this.util.extractFromZipFile(
                 "${path}/${storedFileName}", contentFileName)
         } else {
-            resurrectedDocAsBytes = documentFromNexus.content.getBytes()
+            resurrectedDocAsBytes = documentFromNexus.content
         }
 
         // stash doc with new name / + build id
