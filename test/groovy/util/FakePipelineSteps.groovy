@@ -14,13 +14,13 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
 @SuppressWarnings('MethodCount')
-class PipelineSteps implements IPipelineSteps {
+class FakePipelineSteps implements IPipelineSteps {
 
     private Map currentBuild = [:]
     private Map env = [:]
     private ThreadLocal<Path> dirContext = new ThreadLocal<>()
 
-    PipelineSteps() {
+    FakePipelineSteps() {
         env.WORKSPACE = System.getProperty("java.io.tmpdir")
     }
 

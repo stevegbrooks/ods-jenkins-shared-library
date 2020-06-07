@@ -60,7 +60,7 @@ class ProjectSpec extends SpecHelper {
     def setup() {
         git = Mock(GitService)
         jiraUseCase = Mock(JiraUseCase)
-        steps = Spy(util.PipelineSteps)
+        steps = Spy(FakePipelineSteps)
         steps.env.WORKSPACE = ""
 
         metadataFile = new FixtureHelper().getResource("/project-metadata.yml")

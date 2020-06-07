@@ -1,15 +1,28 @@
 package org.ods.services
 
-import spock.lang.*
-
+import org.ods.util.IPipelineSteps
 import util.*
 import org.ods.util.Logger
 
+import java.nio.file.Files
+import java.nio.file.Paths
+
 class OpenShiftServiceSpec extends SpecHelper {
+
+    IPipelineSteps steps
+
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
+    }
 
     def "image info for image URL"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = new OpenShiftService(steps, new Logger(steps, false), 'foo')
 
         when:
@@ -28,7 +41,6 @@ class OpenShiftServiceSpec extends SpecHelper {
 
     def "image info with SHA for image stream URL"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = GroovySpy(OpenShiftService, constructorArgs: [steps, new Logger(steps, false), 'foo'], global: true)
         OpenShiftService.getImageReference(*_) >> imageReference
 
@@ -54,7 +66,6 @@ class OpenShiftServiceSpec extends SpecHelper {
 
     def "pod data extraction"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = new OpenShiftService(steps, new Logger(steps, false), 'foo')
         def file = new FixtureHelper().getResource("pod.json")
 

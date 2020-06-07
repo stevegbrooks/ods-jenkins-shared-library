@@ -1,15 +1,28 @@
 package org.ods.services
 
-import spock.lang.*
-
+import org.ods.util.IPipelineSteps
 import util.*
 import org.ods.util.Logger
 
+import java.nio.file.Files
+import java.nio.file.Paths
+
 class JenkinsServiceSpec extends SpecHelper {
+
+    IPipelineSteps steps
+
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
+    }
 
     def "unstash files into path"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = new JenkinsService(steps, new Logger(steps, false))
 
         def name = "myStash"
@@ -31,7 +44,6 @@ class JenkinsServiceSpec extends SpecHelper {
 
     def "unstash files into path with failure"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = new JenkinsService(steps, new Logger(steps, false))
 
         def name = "myStash"

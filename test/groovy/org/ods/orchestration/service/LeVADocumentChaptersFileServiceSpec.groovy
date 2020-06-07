@@ -1,16 +1,29 @@
 package org.ods.orchestration.service
 
-import java.nio.file.Paths
+import org.ods.services.ServiceRegistry
+import org.ods.util.IPipelineSteps
 
-import spock.lang.*
+import java.nio.file.Files
+import java.nio.file.Paths
 
 import util.*
 
 class LeVADocumentChaptersFileServiceSpec extends SpecHelper {
 
+    IPipelineSteps steps
+
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
+    }
+
     def "get document chapter data"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = new LeVADocumentChaptersFileService(steps)
 
         def type = "myType"
@@ -53,7 +66,6 @@ class LeVADocumentChaptersFileServiceSpec extends SpecHelper {
 
     def "get document chapter data with invalid documentType"() {
         given:
-        def steps = Spy(util.PipelineSteps)
         def service = new LeVADocumentChaptersFileService(steps)
 
         when:

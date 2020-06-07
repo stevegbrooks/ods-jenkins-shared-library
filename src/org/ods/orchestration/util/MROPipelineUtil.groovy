@@ -378,7 +378,7 @@ class MROPipelineUtil extends PipelineUtil {
             throw new IllegalArgumentException("Error: unable to parse pipeline config. 'path' must be inside the Jenkins workspace: ${path}")
         }
         path = path.substring(ws.length())
-        if(path.startsWith('/')){
+        while(path.startsWith('/') || path.startsWith('\\')){
             path = path.substring(1)
         }
 

@@ -1,6 +1,7 @@
 package org.ods.orchestration.usecase
 
 import groovy.json.JsonOutput
+import org.ods.services.ServiceRegistry
 
 import java.nio.file.Files
 
@@ -10,7 +11,7 @@ import org.ods.orchestration.service.*
 import org.ods.orchestration.util.*
 import org.ods.util.IPipelineSteps
 
-import spock.lang.*
+import java.nio.file.Paths
 
 import static util.FixtureHelper.*
 
@@ -32,7 +33,7 @@ class DocGenUseCaseSpec extends SpecHelper {
         boolean isArchivalRelevant (String documentType) {
             return true
         }
-        
+
         Map getFiletypeForDocumentType (String documentType) {
             return [storage: 'zip', content: 'pdf']
         }
@@ -48,8 +49,14 @@ class DocGenUseCaseSpec extends SpecHelper {
     JenkinsService jenkins
 
     def setup() {
-        steps = Spy(util.PipelineSteps)
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
         steps.env.BUILD_ID = "0815"
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
 
         project = createProject()
         util = Mock(MROPipelineUtil)
@@ -123,13 +130,13 @@ class DocGenUseCaseSpec extends SpecHelper {
         logFile2.delete()
     }
 
-    
+
     def "create document and stash"() {
         given:
         // Test Parameters
         def logFile1 = Files.createTempFile("raw", ".log").toFile() << "Log File 1"
         def logFile2 = Files.createTempFile("raw", ".log").toFile() << "Log File 2"
-  
+
         def documentType = "myDocumentType"
         def version = project.buildParams.version
         def repo = project.repositories.first()
@@ -138,15 +145,15 @@ class DocGenUseCaseSpec extends SpecHelper {
             "raw/${logFile1.name}": logFile1.bytes,
             "raw/${logFile2.name}": logFile2.bytes
         ]
-  
+
         // Argument Constraints
         def basename = "${documentType}-${project.key}-${repo.id}-${version}-${steps.env.BUILD_ID}"
-  
+
         // Stubbed Method Responses
         def document = "PDF".bytes
         def archive = "Archive".bytes
         def nexusUri = new URI("http://nexus")
-  
+
         when:
         def result = usecase.createDocument(documentType, repo, data, files)
 
@@ -181,10 +188,10 @@ class DocGenUseCaseSpec extends SpecHelper {
             archive,
             "application/zip"
         ) >> nexusUri
-  
+
         then:
         result == nexusUri.toString()
-  
+
         cleanup:
         logFile1.delete()
         logFile2.delete()
@@ -381,7 +388,7 @@ class DocGenUseCaseSpec extends SpecHelper {
         new File ("${path}/${docName}").write("test")
 
         def metadata = [:]
-        
+
         when:
         usecase.createOverallDocument(coverType, documentType, metadata)
 
@@ -432,11 +439,11 @@ class DocGenUseCaseSpec extends SpecHelper {
         def version = project.buildParams.version
         def build = "0815"
         def repo = project.repositories.first()
-  
+
         repo.data.odsBuildArtifacts = [ : ]
         when:
         def result = usecase.resurrectAndStashDocument(documentType, repo)
-  
+
         then:
         result.found == false
     }

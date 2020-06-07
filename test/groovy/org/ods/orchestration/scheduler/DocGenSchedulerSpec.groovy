@@ -5,15 +5,19 @@ import org.ods.services.NexusService
 import org.ods.orchestration.service.*
 import org.ods.orchestration.usecase.*
 import org.ods.orchestration.util.*
+import org.ods.services.ServiceRegistry
 import org.ods.util.IPipelineSteps
 
-import spock.lang.*
+import java.nio.file.Files
+import java.nio.file.Paths
 
 import static util.FixtureHelper.*
 
 import util.*
 
 class DocGenSchedulerSpec extends SpecHelper {
+
+    IPipelineSteps steps
 
     class DocGenUseCaseImpl extends DocGenUseCase {
         DocGenUseCaseImpl(Project project, IPipelineSteps steps, MROPipelineUtil util, DocGenService docGen, NexusService nexus, PDFUtil pdf, JenkinsService jenkins) {
@@ -31,7 +35,7 @@ class DocGenSchedulerSpec extends SpecHelper {
         String getDocumentTemplatesVersion() {
             return "0.1"
         }
-        
+
         boolean isArchivalRelevant (String documentType) {
             return true
         }
@@ -50,11 +54,19 @@ class DocGenSchedulerSpec extends SpecHelper {
         }
     }
 
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
+    }
+
     def "run"() {
         given:
         def project = createProject()
-
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Spy(new DocGenUseCaseImpl(project, steps, Mock(MROPipelineUtil), Mock(DocGenService), Mock(NexusService), Mock(PDFUtil), Mock (JenkinsService)))
         def scheduler = Spy(new DocGenSchedulerImpl(project, steps, util, usecase))

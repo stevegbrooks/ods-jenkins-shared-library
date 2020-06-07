@@ -1,13 +1,14 @@
 package org.ods.orchestration.usecase
 
+import org.ods.services.ServiceRegistry
+
 import java.nio.file.Files
 
-import org.ods.orchestration.parser.*
-import org.ods.orchestration.service.*
 import org.ods.orchestration.util.*
 import org.ods.services.NexusService
-import spock.lang.*
 import org.ods.util.IPipelineSteps
+
+import java.nio.file.Paths
 
 import static util.FixtureHelper.*
 
@@ -22,7 +23,13 @@ class SonarQubeUseCaseSpec extends SpecHelper {
 
     def setup() {
         project = createProject()
-        steps = Spy(util.PipelineSteps)
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
         nexus = Mock(NexusService)
         usecase = new SonarQubeUseCase(project, steps, nexus)
     }

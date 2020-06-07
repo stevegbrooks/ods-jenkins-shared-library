@@ -3,34 +3,47 @@ package org.ods.services
 import com.github.tomakehurst.wiremock.client.*
 
 import org.apache.http.client.utils.URIBuilder
-import org.ods.services.NexusService
-import spock.lang.*
-
+import org.ods.util.IPipelineSteps
 import util.*
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 class NexusServiceSpec extends SpecHelper {
 
+    IPipelineSteps steps
+
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
+    }
+
     NexusService createService(int port, String username, String password) {
-        return new NexusService("http://localhost:${port}", username, password)
+        return new NexusService(steps, "http://localhost:${port}", username, password)
     }
 
     def "create with invalid baseURL"() {
         when:
-        new NexusService(null, "username", "password")
+        new NexusService(steps, null, "username", "password")
 
         then:
         def e = thrown(IllegalArgumentException)
         e.message == "Error: unable to connect to Nexus. 'baseURL' is undefined."
 
         when:
-        new NexusService(" ", "username", "password")
+        new NexusService(steps, " ", "username", "password")
 
         then:
         e = thrown(IllegalArgumentException)
         e.message == "Error: unable to connect to Nexus. 'baseURL' is undefined."
 
         when:
-        new NexusService("invalid URL", "username", "password")
+        new NexusService(steps, "invalid URL", "username", "password")
 
         then:
         e = thrown(IllegalArgumentException)
@@ -39,14 +52,14 @@ class NexusServiceSpec extends SpecHelper {
 
     def "create with invalid username"() {
         when:
-        new NexusService("http://localhost", null, "password")
+        new NexusService(steps, "http://localhost", null, "password")
 
         then:
         def e = thrown(IllegalArgumentException)
         e.message == "Error: unable to connect to Nexus. 'username' is undefined."
 
         when:
-        new NexusService("http://localhost", " ", "password")
+        new NexusService(steps, "http://localhost", " ", "password")
 
         then:
         e = thrown(IllegalArgumentException)
@@ -55,14 +68,14 @@ class NexusServiceSpec extends SpecHelper {
 
     def "create with invalid password"() {
         when:
-        new NexusService("http://localhost", "username", null)
+        new NexusService(steps, "http://localhost", "username", null)
 
         then:
         def e = thrown(IllegalArgumentException)
         e.message == "Error: unable to connect to Nexus. 'password' is undefined."
 
         when:
-        new NexusService("http://localhost", "username", " ")
+        new NexusService(steps, "http://localhost", "username", " ")
 
         then:
         e = thrown(IllegalArgumentException)
@@ -186,17 +199,17 @@ class NexusServiceSpec extends SpecHelper {
         def response = storeArtifactResponseData([
             status: 404
         ])
-  
+
         def server = createServer(WireMock.&get, request, response)
         def service = createService(server.port(), request.username, request.password)
-  
+
         when:
         service.retrieveArtifact(request.data.repository, request.data.directory, request.data.name, "abc")
-  
+
         then:
         def e = thrown(RuntimeException)
         e.message == "Error: unable to get artifact. Nexus could not be found at: 'http://localhost:${server.port()}${request.path}'."
-  
+
         cleanup:
         stopServer(server)
     }
@@ -207,16 +220,16 @@ class NexusServiceSpec extends SpecHelper {
         def response = storeArtifactResponseData([
             status: 200
         ])
-  
+
         def server = createServer(WireMock.&get, request, response)
         def service = createService(server.port(), request.username, request.password)
-  
+
         when:
         Map result = service.retrieveArtifact(request.data.repository, request.data.directory, request.data.name, "abc")
-  
+
         then:
         result.uri == new URI("http://localhost:${server.port()}${request.path}")
-  
+
         cleanup:
         stopServer(server)
     }

@@ -7,7 +7,6 @@ import org.ods.services.GitService
 import org.apache.http.client.utils.URIBuilder
 import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.ods.orchestration.parser.*
-import org.ods.orchestration.service.*
 import org.ods.orchestration.usecase.*
 import org.ods.orchestration.util.*
 import org.ods.util.IPipelineSteps
@@ -127,7 +126,7 @@ class FakeProject extends Project {
 
 class FixtureHelper {
     static Project createProject() {
-        def steps = new PipelineSteps()
+        def steps = new FakePipelineSteps()
         steps.env.WORKSPACE = ""
 
         return new FakeProject(steps)

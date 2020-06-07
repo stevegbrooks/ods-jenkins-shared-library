@@ -40,7 +40,7 @@ class PipelineUtil {
         }
 
         def artifactPath = path[wsPath.length()..-1]
-        while (artifactPath.startsWith('/')) {
+        while (artifactPath.startsWith('/') || artifactPath.startsWith('\\')) {
             artifactPath = artifactPath[1..-1]
         }
 
@@ -103,7 +103,7 @@ class PipelineUtil {
 
         // Parent directory will be automatically created if needed
         this.steps.dir(path) {
-            this.steps.writeFile(stashName, file.encodeBase64(), 'Base64')
+            this.steps.writeFile(stashName, file.encodeBase64().toString(), 'Base64')
             this.steps.stash(['name': stashName, 'includes': stashName])
         }
     }
@@ -122,7 +122,7 @@ class PipelineUtil {
             this.steps.dir('__tmp') {
                 files.each { filePath, fileData ->
                     this.steps.dir(FilenameUtils.getFullPath(filePath)) {
-                        def base64 = fileData.encodeBase64()
+                        def base64 = fileData.encodeBase64().toString()
                         this.steps.writeFile(FilenameUtils.getName(filePath), base64, 'Base64')
                     }
                 }

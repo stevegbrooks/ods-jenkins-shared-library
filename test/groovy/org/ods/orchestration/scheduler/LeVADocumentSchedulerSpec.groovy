@@ -7,9 +7,13 @@ import org.ods.services.OpenShiftService
 import org.ods.orchestration.service.*
 import org.ods.orchestration.usecase.*
 import org.ods.orchestration.util.*
+import org.ods.services.ServiceRegistry
 import org.ods.util.IPipelineSteps
 
 import spock.lang.*
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 import static util.FixtureHelper.*
 
@@ -27,6 +31,8 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
     static def REPO_ODS_CODE
     static def REPO_ODS_SERVICE
     static def REPO_ODS_TEST
+
+    IPipelineSteps steps
 
     def setupSpec() {
         def project = createProject()
@@ -61,12 +67,21 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         PROJECT_GAMP_5_WITHOUT_REPOS.repositories = []
     }
 
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
+    }
+
     @Unroll
     def "is document applicable for GAMP category 1"() {
         given:
         def project = PROJECT_GAMP_1
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -1468,7 +1483,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = PROJECT_GAMP_3
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -2870,7 +2884,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = PROJECT_GAMP_4
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -4272,7 +4285,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = PROJECT_GAMP_5
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -5674,7 +5686,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         def project = createProject()
         project.data.metadata.capabilities = [[LeVADocs: [GAMPCategory: "0" ]]]
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -5704,7 +5715,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = PROJECT_GAMP_5_WITHOUT_JIRA
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -5721,7 +5731,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = PROJECT_GAMP_5_WITHOUT_REPOS
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def usecase = Mock(LeVADocumentUseCase)
         def scheduler = Spy(new LeVADocumentScheduler(project, steps, util, usecase))
@@ -5744,7 +5753,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "WIP"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -5843,7 +5851,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "v1.0"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -5938,7 +5945,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "WIP"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6010,7 +6016,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "v1.0"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6077,7 +6082,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "v1.0"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6151,7 +6155,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "WIP"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6229,7 +6232,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "v1.0"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6365,7 +6367,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
         project.buildParams.version = "WIP"
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6497,7 +6498,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "qa"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6575,7 +6575,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "qa"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6634,7 +6633,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "qa"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6693,7 +6691,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "qa"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6772,7 +6769,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "prod"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6836,7 +6832,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "prod"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6884,7 +6879,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "prod"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6934,7 +6928,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "prod"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)
@@ -6997,7 +6990,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         def project = createProject()
         project.buildParams.version = "WIP"
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
@@ -7040,7 +7032,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = createProject()
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
@@ -7093,7 +7084,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         given:
         def project = createProject()
 
-        def steps = Spy(util.PipelineSteps)
         def util = Mock(MROPipelineUtil)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
@@ -7144,7 +7134,6 @@ class LeVADocumentSchedulerSpec extends SpecHelper {
         project.buildParams.targetEnvironment = "dev"
         project.buildParams.targetEnvironmentToken = project.buildParams.targetEnvironment[0].toUpperCase()
 
-        def steps = Spy(util.PipelineSteps)
         def docGen = Mock(DocGenService)
         def jenkins = Mock(JenkinsService)
         def jiraUseCase = Mock(JiraUseCase)

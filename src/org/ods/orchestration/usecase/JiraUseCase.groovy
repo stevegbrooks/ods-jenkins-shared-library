@@ -95,7 +95,7 @@ class JiraUseCase {
         def result = html.replaceAll(pattern) { match ->
             def src = match[1]
             def img = this.jira.getFileFromJira(src)
-            return "src=\"data:${img.contentType};base64,${img.data.encodeBase64()}\""
+            return "src=\"data:${img.contentType};base64,${img.data.encodeBase64().toString()}\""
         }
 
         return result

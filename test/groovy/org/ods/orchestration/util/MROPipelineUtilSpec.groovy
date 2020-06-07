@@ -3,12 +3,8 @@ package org.ods.orchestration.util
 import java.nio.file.Files
 import java.nio.file.Paths
 
-import org.ods.orchestration.parser.JUnitParser
 import org.ods.util.IPipelineSteps
-import org.ods.orchestration.util.Project
 import org.ods.services.GitService
-
-import spock.lang.*
 
 import static util.FixtureHelper.*
 
@@ -22,7 +18,12 @@ class MROPipelineUtilSpec extends SpecHelper {
 
     def setup() {
         project = createProject()
-        steps = Spy(util.PipelineSteps)
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
         def git = Mock(GitService)
         util = new MROPipelineUtil(project, steps, git)
     }

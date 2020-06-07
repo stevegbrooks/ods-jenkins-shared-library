@@ -2,9 +2,11 @@ package org.ods.orchestration.usecase
 
 import org.ods.orchestration.service.*
 import org.ods.orchestration.util.*
+import org.ods.services.ServiceRegistry
 import org.ods.util.IPipelineSteps
 
-import spock.lang.*
+import java.nio.file.Files
+import java.nio.file.Paths
 
 import static util.FixtureHelper.*
 
@@ -12,11 +14,11 @@ import util.*
 
 class JiraUseCaseSupportSpec extends SpecHelper {
 
-    JiraUseCase createUseCase(PipelineSteps steps, MROPipelineUtil util, JiraService jira) {
+    JiraUseCase createUseCase(IPipelineSteps steps, MROPipelineUtil util, JiraService jira) {
         return new JiraUseCase(steps, util, jira)
     }
 
-    JiraUseCaseSupport createUseCaseSupport(PipelineSteps steps, JiraUseCase usecase) {
+    JiraUseCaseSupport createUseCaseSupport(IPipelineSteps steps, JiraUseCase usecase) {
         return new JiraUseCaseSupport(steps, usecase)
     }
 
@@ -27,7 +29,13 @@ class JiraUseCaseSupportSpec extends SpecHelper {
 
     def setup() {
         project = createProject()
-        steps = Spy(util.PipelineSteps)
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
         usecase = Mock(JiraUseCase)
 
         support = new JiraUseCaseSupport(project, steps, usecase)

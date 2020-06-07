@@ -1,16 +1,15 @@
 package org.ods.orchestration
 
 import org.ods.PipelineScript
-import org.ods.orchestration.TestStage
 import org.ods.orchestration.scheduler.LeVADocumentScheduler
-import org.ods.services.JenkinsService
-import org.ods.services.ServiceRegistry
 import org.ods.orchestration.usecase.JUnitTestReportsUseCase
 import org.ods.orchestration.usecase.JiraUseCase
-import org.ods.util.IPipelineSteps
 import org.ods.orchestration.util.MROPipelineUtil
-import org.ods.util.PipelineSteps
 import org.ods.orchestration.util.Project
+import org.ods.services.JenkinsService
+import org.ods.services.ServiceRegistry
+import org.ods.util.IPipelineSteps
+import util.FakePipelineSteps
 import util.SpecHelper
 
 import static util.FixtureHelper.createProject
@@ -30,7 +29,7 @@ class TestStageSpec extends SpecHelper {
 
     def setup() {
         script = new PipelineScript()
-        steps = Mock(PipelineSteps)
+        steps = Mock(FakePipelineSteps)
         levaDocScheduler = Mock(LeVADocumentScheduler)
         project = Spy(createProject())
         util = Mock(MROPipelineUtil)
@@ -44,7 +43,7 @@ class TestStageSpec extends SpecHelper {
     ServiceRegistry createService() {
         def registry = ServiceRegistry.instance
 
-        registry.add(PipelineSteps, steps)
+        registry.add(IPipelineSteps, steps)
         registry.add(LeVADocumentScheduler, levaDocScheduler)
         registry.add(MROPipelineUtil, util)
         registry.add(JiraUseCase, jira)

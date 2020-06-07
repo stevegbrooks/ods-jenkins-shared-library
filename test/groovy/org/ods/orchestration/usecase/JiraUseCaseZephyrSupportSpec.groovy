@@ -1,11 +1,13 @@
 package org.ods.orchestration.usecase
 
-import org.ods.orchestration.parser.*
+
 import org.ods.orchestration.service.*
 import org.ods.orchestration.util.*
+import org.ods.services.ServiceRegistry
 import org.ods.util.IPipelineSteps
 
-import spock.lang.*
+import java.nio.file.Files
+import java.nio.file.Paths
 
 import static util.FixtureHelper.*
 
@@ -23,7 +25,13 @@ class JiraUseCaseZephyrSupportSpec extends SpecHelper {
 
     def setup() {
         project = Spy(createProject())
-        steps = Spy(util.PipelineSteps)
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
         util = Mock(MROPipelineUtil)
         jira = Mock(JiraService)
         usecase = Spy(new JiraUseCase(project, steps, util, jira))

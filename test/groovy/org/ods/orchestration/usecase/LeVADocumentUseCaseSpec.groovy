@@ -1,10 +1,9 @@
 package org.ods.orchestration.usecase
 
-import groovy.json.JsonOutput
+import org.ods.services.ServiceRegistry
 
 import java.nio.file.Files
-
-import static groovy.test.GroovyAssert.shouldFail
+import java.nio.file.Paths
 
 import org.ods.services.JenkinsService
 import org.ods.services.NexusService
@@ -12,8 +11,6 @@ import org.ods.services.OpenShiftService
 import org.ods.orchestration.service.*
 import org.ods.orchestration.util.*
 import org.ods.util.IPipelineSteps
-
-import spock.lang.*
 
 import static util.FixtureHelper.*
 
@@ -41,7 +38,13 @@ class LeVADocumentUseCaseSpec extends SpecHelper {
         project.buildParams.targetEnvironmentToken = "D"
         project.buildParams.version = "WIP"
 
-        steps = Spy(util.PipelineSteps)
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+        ServiceRegistry.instance.add(IPipelineSteps, steps)
         util = Mock(MROPipelineUtil)
         docGen = Mock(DocGenService)
         jenkins = Mock(JenkinsService)

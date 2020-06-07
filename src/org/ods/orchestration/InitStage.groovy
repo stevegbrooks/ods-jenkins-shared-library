@@ -80,7 +80,7 @@ class InitStage extends Stage {
         def registry = ServiceRegistry.instance
         registry.add(GitService, git)
         registry.add(PDFUtil, new PDFUtil())
-        registry.add(PipelineSteps, steps)
+        registry.add(IPipelineSteps, steps)
         def util = new MROPipelineUtil(project, steps, git)
         registry.add(MROPipelineUtil, util)
         registry.add(Project, project)
@@ -135,6 +135,7 @@ class InitStage extends Stage {
 
         registry.add(NexusService,
             new NexusService(
+                steps,
                 script.env.NEXUS_URL,
                 script.env.NEXUS_USERNAME,
                 script.env.NEXUS_PASSWORD

@@ -12,7 +12,7 @@ class CRC32OutputStream extends FilterOutputStream {
 
     @Override
     void write(byte[] b, int off, int len) {
-        if ((off | len | (b.length - (len + off)) | (off + len)) < 0)
+        if ((off | len | (off + len) | (b.length - (off + len))) < 0)
             throw new IndexOutOfBoundsException();
 
         out.write(b, off, len)

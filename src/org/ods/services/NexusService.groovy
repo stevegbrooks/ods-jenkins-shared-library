@@ -6,6 +6,7 @@ import com.cloudbees.groovy.cps.NonCPS
 import kong.unirest.Unirest
 import org.apache.commons.io.FilenameUtils
 import org.apache.http.client.utils.URIBuilder
+import org.ods.util.IPipelineSteps
 import org.ods.util.PipelineSteps
 
 class NexusService {
@@ -15,7 +16,13 @@ class NexusService {
     final String username
     final String password
 
-    NexusService(String baseURL, String username, String password) {
+    final IPipelineSteps steps
+
+    NexusService(IPipelineSteps steps, String baseURL, String username, String password) {
+        if (steps == null) {
+            throw new NullPointerException("Error: unable to connect to Nexus. An instance of IPipelineSteps is required.")
+        }
+
         if (!baseURL?.trim()) {
             throw new IllegalArgumentException("Error: unable to connect to Nexus. 'baseURL' is undefined.")
         }
@@ -27,6 +34,8 @@ class NexusService {
         if (!password?.trim()) {
             throw new IllegalArgumentException("Error: unable to connect to Nexus. 'password' is undefined.")
         }
+
+        this.steps = steps
 
         try {
             this.baseURL = new URIBuilder(baseURL).build()
@@ -57,8 +66,7 @@ class NexusService {
         String name,
         String artifact,
         String contentType) {
-        def steps = ServiceRegistry.instance.get(PipelineSteps)
-        steps.dir(FilenameUtils.getFullPath(artifact)) {
+        this.steps.dir(FilenameUtils.getFullPath(artifact)) {
             def base64 = steps.readFile(FilenameUtils.getName(artifact), 'Base64')
             return storeArtifact(repository, directory, name, base64.decodeBase64(), contentType)
         }
@@ -130,8 +138,7 @@ class NexusService {
             }
         }
 
-        def steps = ServiceRegistry.instance.get(PipelineSteps)
-        steps.dir(extractionPath) {
+        this.steps.dir(extractionPath) {
             def base64 = response.body.encodeBase64().toString()
             steps.writeFile(name, base64, 'Base64')
         }

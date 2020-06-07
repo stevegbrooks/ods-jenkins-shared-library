@@ -1,16 +1,30 @@
 package org.ods.orchestration.util
 
 import org.apache.pdfbox.pdmodel.PDDocument
+import org.ods.util.IPipelineSteps
 import util.FixtureHelper
-import util.PipelineSteps
+import util.FakePipelineSteps
 import util.SpecHelper
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 class PDFUtilSpec extends SpecHelper {
 
+    IPipelineSteps steps
+
+    def setup() {
+        def steps = Spy(FakePipelineSteps)
+        def tmpDir = getClass().getSimpleName()
+        def tmpPath = Paths.get(steps.env.WORKSPACE, tmpDir)
+        Files.createDirectories(tmpPath)
+        steps.env.WORKSPACE = tmpPath.toString()
+        this.steps = steps
+    }
 
     def "add watermark text"() {
         given:
-        def util = new PDFUtil(new PipelineSteps())
+        def util = new PDFUtil(steps)
 
         def pdfFile = new FixtureHelper().getResource("Test-1.pdf")
         def text = "myWatermark"
@@ -27,7 +41,7 @@ class PDFUtilSpec extends SpecHelper {
 
     def "convert from mardkdown document"() {
         given:
-        def util = new PDFUtil(new PipelineSteps())
+        def util = new PDFUtil(steps)
 
         def docFile = new FixtureHelper().getResource("Test.md")
         def result
@@ -52,7 +66,7 @@ class PDFUtilSpec extends SpecHelper {
 
     def "convert from Microsoft Word document"() {
         given:
-        def util = new PDFUtil(new PipelineSteps())
+        def util = new PDFUtil(steps)
 
         def docFile = new FixtureHelper().getResource("Test.docx")
 
@@ -67,7 +81,7 @@ class PDFUtilSpec extends SpecHelper {
 
     def "merge documents"() {
         given:
-        def util = new PDFUtil(new PipelineSteps())
+        def util = new PDFUtil(steps)
 
         def docFile1 = new FixtureHelper().getResource("Test-1.pdf")
         def docFile2 = new FixtureHelper().getResource("Test-2.pdf")
